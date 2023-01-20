@@ -11,37 +11,34 @@ features:
 - title: Technology
   details: Something interesting
 ---
-<ClientOnly>
-  <my-demo></my-demo>
-</ClientOnly>
+
 <script>
-console.log('here');
   var caution=false
   function setCookie(name,value,expires,path,domain,secure) 
   {
-   var curCookie=name+"="+escape(value) +
-   ((expires)?";expires="+expires.toGMTString() : "") +
-   ((path)?"; path=" + path : "") +
-   ((domain)? "; domain=" + domain : "") +
-   ((secure)?";secure" : "")
-   if(!caution||(name + "=" + escape(value)).length <= 4000)
+   var curCookie=name+ '='+escape(value) +
+   ((expires)?';expires='+expires.toGMTString() : '') +
+   ((path)?'; path=' + path :'') +
+   ((domain)? '; domain=' + domain : '') +
+   ((secure)?';secure' : '')
+   if(!caution||(name + '='+ escape(value)).length <= 4000)
    {
    document.cookie = curCookie
    }
-   else if(confirm("Cookie exceeds 4KB and will be cut!"))
+   else if(confirm('Cookie exceeds 4KB and will be cut!'))
    {
    document.cookie = curCookie
    }
   }
   function getCookie(name) 
   {
-   var prefix = name + "="
+   var prefix = name + '='
    var cookieStartIndex = document.cookie.indexOf(prefix)
    if (cookieStartIndex == -1)
    {
    return null
    }    
-   var cookieEndIndex=document.cookie.indexOf(";",cookieStartIndex+prefix.length)
+   var cookieEndIndex=document.cookie.indexOf(';',cookieStartIndex+prefix.length)
    if(cookieEndIndex == -1)
    {
    cookieEndIndex = document.cookie.length
@@ -52,10 +49,10 @@ console.log('here');
   {
    if(getCookie(name)) 
    {
-   document.cookie = name + "=" + 
-   ((path) ? "; path=" + path : "") +
-   ((domain) ? "; domain=" + domain : "") +
-   "; expires=Thu, 01-Jan-70 00:00:01 GMT"
+   document.cookie = name + '='+ 
+   ((path) ? '; path=' + path : '') +
+   ((domain) ? '; domain=' + domain : '') +
+   '; expires=Thu, 01-Jan-70 00:00:01 GMT'
    }
   }
   function fixDate(date) 
@@ -70,7 +67,7 @@ console.log('here');
   var now=new Date()
   fixDate(now)
   now.setTime(now.getTime()+365 * 24 * 60 * 60 * 1000)
-  var visits = getCookie("counter")
+  var visits = getCookie('counter')
   if(!visits)
   {
    visits=1;
@@ -79,6 +76,6 @@ console.log('here');
   {
    visits=parseInt(visits)+1;
   }  
-  setCookie("counter", visits, now);
+  setCookie('counter', visits, now);
   console.log('访问人数：'+visits);
 </script>
