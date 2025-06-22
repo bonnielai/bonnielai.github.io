@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Crop, Scale & Compress</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #preview, #outputCanvas {
+      max-width: 100%;
+      margin: 20px auto;
+      display: block;
+    }
+
+    button, a {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+
+    button:disabled, a.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Image Crop, Scale & Compress Tool</h1>
+
+  <input type="file" id="imageInput" accept="image/*"><br><br>
+
+  <img id="preview" style="display:none;" />
+  
+  <button id="cropCompressBtn" disabled>Crop, Scale & Compress</button>
+  <a id="downloadBtn" class="disabled" download="compressed.jpg">Download</a>
+
+  <canvas id="outputCanvas" style="display:none;"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const preview = document.getElementById('preview');
+    const cropCompressBtn = document.getElementById('cropCompressBtn');
+    const outputCanvas = document.getElementById('outputCanvas');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let cropper;
+
+    // Load selected image
+    imageInput.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        preview.src = event.target.result;
+        preview.style.display = 'block';
+
+        // Initialize or reset cropper
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(preview, {
+          viewMode: 1,
+          autoCropArea: 1,
+          responsive: true
+        });
+
+        cropCompressBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Crop, scale, compress, and show output
+    cropCompressBtn.addEventListener('click', function () {
+      if (!cropper) return;
+
+      const croppedCanvas = cropper.getCroppedCanvas({
+        maxWidth: 800,
+        maxHeight: 800,
+        imageSmoothingQuality: 'high'
+      });
+
+      const quality = 0.7;
+      const compressedDataUrl = croppedCanvas.toDataURL('image/jpeg', quality);
+
+      // Draw to output canvas
+      const ctx = outputCanvas.getContext('2d');
+      const outputImg = new Image();
+      outputImg.onload = function () {
+        outputCanvas.width = outputImg.width;
+        outputCanvas.height = outputImg.height;
+        ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+        ctx.drawImage(outputImg, 0, 0);
+
+        outputCanvas.style.display = 'block';
+        downloadBtn.href = compressedDataUrl;
+        downloadBtn.classList.remove('disabled');
+      };
+      outputImg.src = compressedDataUrl;
+    });
+  </script>
+</body>
+</html>
