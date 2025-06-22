@@ -180,7 +180,7 @@
 }
 
 .tools p{
-  
+
 }
 .tools ul{
 
@@ -270,4 +270,8 @@
       @include relative-font-size(1.125);
     }
   }
+}
+
+.rss-subscribe {
+  display: none;
 }
