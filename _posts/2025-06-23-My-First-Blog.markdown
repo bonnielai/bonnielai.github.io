@@ -5,7 +5,7 @@ date:   2025-06-23 01:00:00 +0800
 categories: daily
 ---
 
-  Hey everyone! This is my very first blog post, and I’m thrilled to be back in the blogging game after a long hiatus. Just like I’ve stayed committed to software development for all these years and plan to dive deeper into advanced studies, I’m equally excited to re - establish my digital space here. From now on, expect irregular updates where I’ll be sharing snippets of my life and learning journey. I can’t wait to connect and have meaningful conversations with you all!​
+  Hey everyone! This is my very first blog post, and I’m thrilled to be back in the blogging game after a long hiatus. Just like I’ve stayed committed to software development for all these years and plan to dive deeper into advanced studies, I’m equally excited to re-establish my digital space here. From now on, expect irregular updates where I’ll be sharing snippets of my life and learning journey. I can’t wait to connect and have meaningful conversations with you all!​
 
   I may not post every day, but each article is crafted to convey authenticity and warmth. Whether you’re looking to level up your technical skills or simply seeking a connection through shared experiences, feel free to stop by often. Let’s explore and unlock more possibilities in life together through sharing and conversation! 
 
