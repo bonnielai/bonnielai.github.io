@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片拼接工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#64748B',
+                        accent: '#10B981',
+                        neutral: '#F3F4F6',
+                        'neutral-dark': '#1F2937'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .drop-shadow-custom {
+                filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
+            }
+            .transition-custom {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen font-inter text-gray-800">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 页面标题 -->
+        <header class="text-center mb-10">
+            <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-3">
+                图片拼接工具
+            </h1>
+            <p class="text-gray-600 text-lg max-w-2xl mx-auto">
+                上传两张图片，选择拼接方式，立即生成拼接后的图片
+            </p>
+        </header>
+        
+        <main class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 左侧：图片上传和设置 -->
+                <div class="space-y-8">
+                    <!-- 上传区域 -->
+                    <div class="space-y-6">
+                        <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                            <i class="fa fa-upload text-primary mr-2"></i> 上传图片
+                        </h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- 第一张图片上传 -->
+                            <div class="space-y-3">
+                                <label for="image1" class="block text-sm font-medium text-gray-700">第一张图片</label>
+                                <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-primary transition-custom cursor-pointer bg-neutral" id="dropzone1">
+                                    <input type="file" id="image1" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*">
+                                    <div class="text-center py-6">
+                                        <i class="fa fa-image text-4xl text-gray-400 mb-2"></i>
+                                        <p class="text-sm text-gray-500">点击或拖拽图片到此处</p>
+                                        <p class="text-xs text-gray-400 mt-1">支持 JPG, PNG, WebP</p>
+                                    </div>
+                                    <div class="hidden" id="preview1-container">
+                                        <img id="preview1" class="w-full h-auto rounded-lg object-contain max-h-40" alt="第一张图片预览">
+                                        <button type="button" id="remove1" class="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg hover:bg-red-600 transition-custom">
+                                            <i class="fa fa-times text-xs"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 第二张图片上传 -->
+                            <div class="space-y-3">
+                                <label for="image2" class="block text-sm font-medium text-gray-700">第二张图片</label>
+                                <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-primary transition-custom cursor-pointer bg-neutral" id="dropzone2">
+                                    <input type="file" id="image2" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*">
+                                    <div class="text-center py-6">
+                                        <i class="fa fa-image text-4xl text-gray-400 mb-2"></i>
+                                        <p class="text-sm text-gray-500">点击或拖拽图片到此处</p>
+                                        <p class="text-xs text-gray-400 mt-1">支持 JPG, PNG, WebP</p>
+                                    </div>
+                                    <div class="hidden" id="preview2-container">
+                                        <img id="preview2" class="w-full h-auto rounded-lg object-contain max-h-40" alt="第二张图片预览">
+                                        <button type="button" id="remove2" class="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg hover:bg-red-600 transition-custom">
+                                            <i class="fa fa-times text-xs"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 拼接设置 -->
+                    <div class="space-y-6">
+                        <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                            <i class="fa fa-sliders text-primary mr-2"></i> 拼接设置
+                        </h2>
+                        
+                        <div class="space-y-4">
+                            <!-- 拼接方向选择 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">拼接方向</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="flex items-center justify-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-custom" id="direction-horizontal-label">
+                                        <input type="radio" name="direction" value="horizontal" class="sr-only" id="direction-horizontal" checked>
+                                        <div class="flex flex-col items-center">
+                                            <i class="fa fa-arrows-h text-xl text-gray-600 mb-1"></i>
+                                            <span class="text-sm">左右拼接</span>
+                                            <span class="text-xs text-gray-500 mt-1">(自动统一高度)</span>
+                                        </div>
+                                    </label>
+                                    <label class="flex items-center justify-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-custom" id="direction-vertical-label">
+                                        <input type="radio" name="direction" value="vertical" class="sr-only" id="direction-vertical">
+                                        <div class="flex flex-col items-center">
+                                            <i class="fa fa-arrows-v text-xl text-gray-600 mb-1"></i>
+                                            <span class="text-sm">上下拼接</span>
+                                            <span class="text-xs text-gray-500 mt-1">(自动统一宽度)</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- 边距设置 -->
+                            <div>
+                                <label for="margin" class="block text-sm font-medium text-gray-700 mb-2">图片间距 (像素)</label>
+                                <input type="range" id="margin" min="0" max="100" value="10" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>0</span>
+                                    <span id="margin-value">10</span>
+                                    <span>100</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 背景颜色 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">背景颜色</label>
+                                <div class="grid grid-cols-5 gap-2">
+                                    <button type="button" class="w-full h-10 rounded-md bg-white border border-gray-300 bg-option active" data-color="#ffffff"></button>
+                                    <button type="button" class="w-full h-10 rounded-md bg-black border border-gray-300 bg-option" data-color="#000000"></button>
+                                    <button type="button" class="w-full h-10 rounded-md bg-gray-200 border border-gray-300 bg-option" data-color="#e5e7eb"></button>
+                                    <button type="button" class="w-full h-10 rounded-md bg-primary border border-gray-300 bg-option" data-color="#3B82F6"></button>
+                                    <button type="button" class="w-full h-10 rounded-md bg-accent border border-gray-300 bg-option" data-color="#10B981"></button>
+                                </div>
+                            </div>
+                            
+                            <!-- 拼接按钮 -->
+                            <button id="combine-btn" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-custom flex items-center justify-center shadow-md hover:shadow-lg">
+                                <i class="fa fa-object-group mr-2"></i> 开始拼接
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧：拼接结果 -->
+                <div class="space-y-6">
+                    <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                        <i class="fa fa-image text-primary mr-2"></i> 拼接结果
+                    </h2>
+                    
+                    <!-- 结果预览 -->
+                    <div class="relative bg-neutral rounded-xl p-4 flex items-center justify-center min-h-[300px] border-2 border-dashed border-gray-300 overflow-hidden" id="result-container">
+                        <div class="text-center text-gray-500" id="result-placeholder">
+                            <i class="fa fa-picture-o text-5xl mb-3 text-gray-300"></i>
+                            <p>拼接后的图片将显示在这里</p>
+                        </div>
+                        <canvas id="result-canvas" class="hidden max-w-full max-h-[500px] drop-shadow-custom"></canvas>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="grid grid-cols-2 gap-4" id="result-actions">
+                        <button id="download-btn" class="bg-accent hover:bg-accent/90 text-white font-medium py-3 px-4 rounded-lg transition-custom flex items-center justify-center shadow-md hover:shadow-lg opacity-50 cursor-not-allowed">
+                            <i class="fa fa-download mr-2"></i> 下载图片
+                        </button>
+                        <button id="reset-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg transition-custom flex items-center justify-center shadow-md hover:shadow-lg">
+                            <i class="fa fa-refresh mr-2"></i> 重新开始
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- 页脚 -->
+        <footer class="text-center text-gray-500 text-sm py-4">
+            <p>© 2025 图片拼接工具 | 简单、快速的图片拼接解决方案</p>
+        </footer>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const image1Input = document.getElementById('image1');
+            const image2Input = document.getElementById('image2');
+            const preview1 = document.getElementById('preview1');
+            const preview2 = document.getElementById('preview2');
+            const preview1Container = document.getElementById('preview1-container');
+            const preview2Container = document.getElementById('preview2-container');
+            const remove1Btn = document.getElementById('remove1');
+            const remove2Btn = document.getElementById('remove2');
+            const dropzone1 = document.getElementById('dropzone1');
+            const dropzone2 = document.getElementById('dropzone2');
+            const directionHorizontal = document.getElementById('direction-horizontal');
+            const directionVertical = document.getElementById('direction-vertical');
+            const directionHorizontalLabel = document.getElementById('direction-horizontal-label');
+            const directionVerticalLabel = document.getElementById('direction-vertical-label');
+            const marginInput = document.getElementById('margin');
+            const marginValue = document.getElementById('margin-value');
+            const bgOptions = document.querySelectorAll('.bg-option');
+            const combineBtn = document.getElementById('combine-btn');
+            const resultCanvas = document.getElementById('result-canvas');
+            const resultContainer = document.getElementById('result-container');
+            const resultPlaceholder = document.getElementById('result-placeholder');
+            const downloadBtn = document.getElementById('download-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            // 变量初始化
+            let image1 = null;
+            let image2 = null;
+            let backgroundColor = '#ffffff';
+            
+            // 图片1上传预览
+            image1Input.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview1.src = e.target.result;
+                        preview1Container.classList.remove('hidden');
+                        dropzone1.classList.remove('border-dashed', 'border-gray-300', 'hover:border-primary');
+                        dropzone1.classList.add('border-transparent');
+                        image1 = new Image();
+                        image1.src = e.target.result;
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+            
+            // 图片2上传预览
+            image2Input.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview2.src = e.target.result;
+                        preview2Container.classList.remove('hidden');
+                        dropzone2.classList.remove('border-dashed', 'border-gray-300', 'hover:border-primary');
+                        dropzone2.classList.add('border-transparent');
+                        image2 = new Image();
+                        image2.src = e.target.result;
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+            
+            // 移除图片1
+            remove1Btn.addEventListener('click', function() {
+                image1Input.value = '';
+                preview1Container.classList.add('hidden');
+                dropzone1.classList.add('border-dashed', 'border-gray-300', 'hover:border-primary');
+                dropzone1.classList.remove('border-transparent');
+                image1 = null;
+            });
+            
+            // 移除图片2
+            remove2Btn.addEventListener('click', function() {
+                image2Input.value = '';
+                preview2Container.classList.add('hidden');
+                dropzone2.classList.add('border-dashed', 'border-gray-300', 'hover:border-primary');
+                dropzone2.classList.remove('border-transparent');
+                image2 = null;
+            });
+            
+            // 拖拽上传支持
+            [dropzone1, dropzone2].forEach((dropzone, index) => {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropzone.addEventListener(eventName, unhighlight, false);
+                });
+                
+                function highlight() {
+                    dropzone.classList.add('border-primary', 'bg-blue-50');
+                }
+                
+                function unhighlight() {
+                    dropzone.classList.remove('border-primary', 'bg-blue-50');
+                }
+                
+                dropzone.addEventListener('drop', function(e) {
+                    const dt = e.dataTransfer;
+                    const file = dt.files[0];
+                    
+                    if (file && file.type.match('image.*')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            if (index === 0) {
+                                preview1.src = e.target.result;
+                                preview1Container.classList.remove('hidden');
+                                dropzone1.classList.remove('border-dashed', 'border-gray-300', 'hover:border-primary');
+                                dropzone1.classList.add('border-transparent');
+                                image1 = new Image();
+                                image1.src = e.target.result;
+                                image1Input.value = ''; // 重置input值，避免重复上传相同文件
+                            } else {
+                                preview2.src = e.target.result;
+                                preview2Container.classList.remove('hidden');
+                                dropzone2.classList.remove('border-dashed', 'border-gray-300', 'hover:border-primary');
+                                dropzone2.classList.add('border-transparent');
+                                image2 = new Image();
+                                image2.src = e.target.result;
+                                image2Input.value = ''; // 重置input值，避免重复上传相同文件
+                            }
+                        }
+                        reader.readAsDataURL(file);
+                    }
+                }, false);
+            });
+            
+            // 拼接方向选择样式
+            directionHorizontal.addEventListener('change', function() {
+                if (this.checked) {
+                    directionHorizontalLabel.classList.add('border-primary', 'bg-blue-50');
+                    directionVerticalLabel.classList.remove('border-primary', 'bg-blue-50');
+                }
+            });
+            
+            directionVertical.addEventListener('change', function() {
+                if (this.checked) {
+                    directionVerticalLabel.classList.add('border-primary', 'bg-blue-50');
+                    directionHorizontalLabel.classList.remove('border-primary', 'bg-blue-50');
+                }
+            });
+            
+            // 边距值更新
+            marginInput.addEventListener('input', function() {
+                marginValue.textContent = this.value;
+            });
+            
+            // 背景颜色选择
+            bgOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    bgOptions.forEach(opt => opt.classList.remove('active', 'ring-2', 'ring-offset-2', 'ring-primary'));
+                    this.classList.add('active', 'ring-2', 'ring-offset-2', 'ring-primary');
+                    backgroundColor = this.dataset.color;
+                });
+            });
+            
+            // 开始拼接
+            combineBtn.addEventListener('click', function() {
+                if (!image1 || !image2) {
+                    alert('请上传两张图片后再进行拼接');
+                    return;
+                }
+                
+                // 确保图片已加载
+                if (!image1.complete || !image2.complete) {
+                    alert('图片尚未完全加载，请稍候再试');
+                    return;
+                }
+                
+                const margin = parseInt(marginInput.value);
+                const isHorizontal = directionHorizontal.checked;
+                
+                let canvasWidth, canvasHeight;
+                let img1Width, img1Height, img2Width, img2Height;
+                
+                if (isHorizontal) {
+                    // 左右拼接 - 统一高度
+                    const targetHeight = Math.min(image1.height, image2.height);
+                    img1Width = image1.width * (targetHeight / image1.height);
+                    img1Height = targetHeight;
+                    img2Width = image2.width * (targetHeight / image2.height);
+                    img2Height = targetHeight;
+                    
+                    canvasWidth = img1Width + img2Width + margin;
+                    canvasHeight = targetHeight;
+                } else {
+                    // 上下拼接 - 统一宽度
+                    const targetWidth = Math.min(image1.width, image2.width);
+                    img1Width = targetWidth;
+                    img1Height = image1.height * (targetWidth / image1.width);
+                    img2Width = targetWidth;
+                    img2Height = image2.height * (targetWidth / image2.width);
+                    
+                    canvasWidth = targetWidth;
+                    canvasHeight = img1Height + img2Height + margin;
+                }
+                
+                // 设置画布
+                resultCanvas.width = canvasWidth;
+                resultCanvas.height = canvasHeight;
+                const ctx = resultCanvas.getContext('2d');
+                
+                // 绘制背景
+                ctx.fillStyle = backgroundColor;
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+                
+                // 绘制图片
+                if (isHorizontal) {
+                    // 左右拼接
+                    ctx.drawImage(image1, 0, 0, img1Width, img1Height);
+                    ctx.drawImage(image2, img1Width + margin, 0, img2Width, img2Height);
+                } else {
+                    // 上下拼接
+                    ctx.drawImage(image1, 0, 0, img1Width, img1Height);
+                    ctx.drawImage(image2, 0, img1Height + margin, img2Width, img2Height);
+                }
+                
+                // 显示结果
+                resultPlaceholder.classList.add('hidden');
+                resultCanvas.classList.remove('hidden');
+                downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            });
+            
+            // 下载图片
+            downloadBtn.addEventListener('click', function() {
+                if (resultCanvas.classList.contains('hidden')) return;
+                
+                // 创建下载链接
+                const link = document.createElement('a');
+                link.download = 'combined-image.png';
+                link.href = resultCanvas.toDataURL('image/png');
+                link.click();
+            });
+            
+            // 重置所有
+            resetBtn.addEventListener('click', function() {
+                // 重置图片
+                image1Input.value = '';
+                image2Input.value = '';
+                preview1Container.classList.add('hidden');
+                preview2Container.classList.add('hidden');
+                dropzone1.classList.add('border-dashed', 'border-gray-300', 'hover:border-primary');
+                dropzone1.classList.remove('border-transparent');
+                dropzone2.classList.add('border-dashed', 'border-gray-300', 'hover:border-primary');
+                dropzone2.classList.remove('border-transparent');
+                image1 = null;
+                image2 = null;
+                
+                // 重置选项
+                directionHorizontal.checked = true;
+                directionHorizontalLabel.classList.add('border-primary', 'bg-blue-50');
+                directionVerticalLabel.classList.remove('border-primary', 'bg-blue-50');
+                marginInput.value = 10;
+                marginValue.textContent = '10';
+                
+                // 重置背景颜色
+                bgOptions.forEach(opt => opt.classList.remove('active', 'ring-2', 'ring-offset-2', 'ring-primary'));
+                bgOptions[0].classList.add('active', 'ring-2', 'ring-offset-2', 'ring-primary');
+                backgroundColor = '#ffffff';
+                
+                // 重置结果
+                resultCanvas.classList.add('hidden');
+                resultPlaceholder.classList.remove('hidden');
+                downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+            
+            // 添加键盘快捷键
+            document.addEventListener('keydown', function(e) {
+                // Ctrl/Cmd + Enter 开始拼接
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    combineBtn.click();
+                }
+                
+                // Escape 重置
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    resetBtn.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>    
