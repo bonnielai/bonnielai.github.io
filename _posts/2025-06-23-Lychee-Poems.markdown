@@ -19,7 +19,7 @@ categories: daily
 这些荔枝诗词，不只是文学瑰宝，更蕴含着对技术思维的启发。在忙碌的技术探索之余，品味诗词，或许能为我们带来新的灵感，让我们在代码世界与诗意天地间找到奇妙的平衡。大家有没有从这些诗词里联想到自己在技术工作中的点滴呢？
 ![荔枝](/images/Lychee1.jpg)
 
-Lychee Poems: From Cultural Treasures to Inspirations for Technical Thinking
+## Lychee Poems: From Cultural Treasures to Inspirations for Technical Thinking
 
 Hey everyone! While you've been immersed in the world of software development through my sharing, let’s embark on a special cross-disciplinary journey today and talk about poems related to lychees. You might wonder, what’s the connection between them and technology? Hold on, and let me explain.
 

@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片处理工具 | 裁剪·缩放·压缩</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .transition-custom {
+                transition: all 0.3s ease;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-primary/90 text-white font-medium py-2.5 px-5 rounded-lg transition-custom shadow-sm;
+            }
+            .btn-secondary {
+                @apply bg-secondary hover:bg-secondary/90 text-white font-medium py-2.5 px-5 rounded-lg transition-custom shadow-sm;
+            }
+            .btn-outline {
+                @apply border border-gray-300 hover:border-primary text-gray-700 font-medium py-2.5 px-5 rounded-lg transition-custom;
+            }
+            .input-field {
+                @apply w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-custom;
+            }
+            .crop-handle {
+                @apply absolute w-4 h-4 bg-white border-2 border-primary rounded-full transform -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize z-10;
+            }
+            .crop-handle-nw {
+                @apply top-0 left-0 cursor-nwse-resize;
+            }
+            .crop-handle-ne {
+                @apply top-0 right-0 cursor-nesw-resize;
+            }
+            .crop-handle-sw {
+                @apply bottom-0 left-0 cursor-nesw-resize;
+            }
+            .crop-handle-se {
+                @apply bottom-0 right-0 cursor-nwse-resize;
+            }
+            .preview-container {
+                @apply relative overflow-hidden bg-gray-50 rounded-lg p-4 flex items-center justify-center mb-4 h-64 md:h-80;
+            }
+            .crop-overlay {
+                @apply absolute inset-0 bg-black/40 pointer-events-none;
+            }
+            .crop-box {
+                @apply absolute border-2 border-primary bg-primary/20 cursor-move;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-50 text-dark min-h-screen flex flex-col">
+    <!-- 导航栏 -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-picture-o text-primary text-xl"></i>
+                <h1 class="text-lg font-bold text-dark">图片处理工具</h1>
+            </div>
+            <div class="hidden md:flex items-center space-x-4">
+                <a href="#" class="text-gray-600 hover:text-primary transition-custom">功能</a>
+                <a href="#" class="text-gray-600 hover:text-primary transition-custom">使用指南</a>
+                <a href="#" class="text-gray-600 hover:text-primary transition-custom">关于</a>
+            </div>
+            <button class="md:hidden text-gray-600 focus:outline-none">
+                <i class="fa fa-bars text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="flex-grow container mx-auto px-4 py-8 md:py-12">
+        <!-- 页面标题 -->
+        <div class="text-center mb-10">
+            <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-dark mb-3">图片裁剪、缩放与压缩</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">一站式图片优化工具，轻松处理图片尺寸、质量和格式，提升网页加载速度与用户体验</p>
+        </div>
+
+        <div class="bg-white rounded-xl card-shadow p-6 md:p-8 max-w-5xl mx-auto">
+            <!-- 步骤指示器 -->
+            <div class="flex justify-between items-center mb-8 border-b pb-4">
+                <div class="step-indicator active">
+                    <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center mb-1 mx-auto">1</div>
+                    <p class="text-sm font-medium text-center">上传图片</p>
+                </div>
+                <div class="step-indicator">
+                    <div class="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center mb-1 mx-auto">2</div>
+                    <p class="text-sm font-medium text-center">调整设置</p>
+                </div>
+                <div class="step-indicator">
+                    <div class="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center mb-1 mx-auto">3</div>
+                    <p class="text-sm font-medium text-center">下载结果</p>
+                </div>
+            </div>
+
+            <!-- 上传区域 -->
+            <div id="upload-section" class="mb-8">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i class="fa fa-upload text-primary mr-2"></i> 上传图片
+                </h3>
+                
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-custom mb-4">
+                    <input type="file" id="file-input" accept="image/*" class="hidden">
+                    <button id="select-file-btn" class="btn-primary">
+                        <i class="fa fa-file-image-o mr-2"></i> 选择图片文件
+                    </button>
+                    <p class="text-sm text-gray-500 mt-3">支持 JPG, PNG, WebP 格式，最大文件大小: 20MB</p>
+                </div>
+                
+                <div id="upload-error" class="hidden text-red-500 text-sm mt-2 flex items-center">
+                    <i class="fa fa-exclamation-circle mr-1"></i>
+                    <span>请选择有效的图片文件</span>
+                </div>
+            </div>
+            
+            <!-- 预览区域 -->
+            <div id="preview-section" class="hidden mb-8">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i class="fa fa-eye text-primary mr-2"></i> 图片预览
+                </h3>
+                
+                <div id="preview-container" class="preview-container">
+                    <img id="preview-image" src="" alt="预览图片" class="max-w-full max-h-full object-contain">
+                    <div id="crop-overlay" class="crop-overlay hidden"></div>
+                    <div id="crop-box" class="crop-box hidden">
+                        <div class="crop-handle crop-handle-nw"></div>
+                        <div class="crop-handle crop-handle-ne"></div>
+                        <div class="crop-handle crop-handle-sw"></div>
+                        <div class="crop-handle crop-handle-se"></div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-xs text-gray-500 mb-1">原始尺寸</p>
+                        <p id="original-dimensions" class="font-medium">-</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-xs text-gray-500 mb-1">文件大小</p>
+                        <p id="original-size" class="font-medium">-</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-xs text-gray-500 mb-1">图片格式</p>
+                        <p id="image-format" class="font-medium">-</p>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <button id="start-crop-btn" class="btn-outline">
+                        <i class="fa fa-crop mr-2"></i> 开始裁剪
+                    </button>
+                    <button id="reset-crop-btn" class="btn-outline hidden">
+                        <i class="fa fa-refresh mr-2"></i> 重置裁剪框
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 处理设置 -->
+            <div id="processing-section" class="hidden mb-8">
+                <h3 class="text-lg font-semibold mb-6 flex items-center">
+                    <i class="fa fa-sliders text-primary mr-2"></i> 处理设置
+                </h3>
+                
+                <div class="space-y-6">
+                    <!-- 裁剪设置 -->
+                    <div>
+                        <h4 class="font-medium mb-3 flex items-center">
+                            <i class="fa fa-scissors text-primary mr-2"></i> 裁剪与缩放
+                        </h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="crop-width" class="block text-sm text-gray-700 mb-1">宽度 (像素)</label>
+                                <input type="number" id="crop-width" min="1" class="input-field" placeholder="原始宽度">
+                            </div>
+                            <div>
+                                <label for="crop-height" class="block text-sm text-gray-700 mb-1">高度 (像素)</label>
+                                <input type="number" id="crop-height" min="1" class="input-field" placeholder="原始高度">
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" id="maintain-aspect" checked class="mr-2 h-4 w-4">
+                            <label for="maintain-aspect" class="text-sm text-gray-700">保持原始比例</label>
+                        </div>
+                    </div>
+                    
+                    <!-- 压缩设置 -->
+                    <div>
+                        <h4 class="font-medium mb-3 flex items-center">
+                            <i class="fa fa-compress text-primary mr-2"></i> 压缩质量
+                        </h4>
+                        
+                        <div class="flex items-center">
+                            <input type="range" id="quality-slider" min="1" max="100" value="80" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                            <span id="quality-value" class="ml-3 text-sm font-medium text-gray-700 min-w-[40px]">80%</span>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>更小文件</span>
+                            <span>更高质量</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 格式设置 -->
+                    <div>
+                        <h4 class="font-medium mb-3 flex items-center">
+                            <i class="fa fa-file-image-o text-primary mr-2"></i> 输出格式
+                        </h4>
+                        
+                        <div class="grid grid-cols-4 gap-2">
+                            <div class="flex items-center">
+                                <input type="radio" id="format-auto" name="output-format" value="auto" checked class="mr-2 h-4 w-4">
+                                <label for="format-auto" class="text-sm">自动</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" id="format-jpg" name="output-format" value="jpg" class="mr-2 h-4 w-4">
+                                <label for="format-jpg" class="text-sm">JPG</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" id="format-png" name="output-format" value="png" class="mr-2 h-4 w-4">
+                                <label for="format-png" class="text-sm">PNG</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" id="format-webp" name="output-format" value="webp" class="mr-2 h-4 w-4">
+                                <label for="format-webp" class="text-sm">WebP</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 结果区域 -->
+            <div id="result-section" class="hidden mb-8">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i class="fa fa-check-circle text-secondary mr-2"></i> 处理结果
+                </h3>
+                
+                <div class="bg-gray-50 rounded-lg p-4 flex items-center justify-center mb-4 h-64 md:h-80">
+                    <img id="result-image" src="" alt="处理后图片" class="max-w-full max-h-full object-contain">
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-green-50 rounded-lg p-3">
+                        <p class="text-xs text-green-600 mb-1">处理后尺寸</p>
+                        <p id="processed-dimensions" class="font-medium">-</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-3">
+                        <p class="text-xs text-green-600 mb-1">文件大小</p>
+                        <p id="processed-size" class="font-medium">-</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-3">
+                        <p class="text-xs text-green-600 mb-1">压缩率</p>
+                        <p id="compression-rate" class="font-medium text-green-600">-</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 按钮区域 -->
+            <div id="button-section" class="flex flex-col sm:flex-row justify-center gap-4">
+                <button id="process-btn" class="hidden btn-primary">
+                    <i class="fa fa-magic mr-2"></i> 处理图片
+                </button>
+                <a id="download-btn" href="#" download class="hidden btn-secondary">
+                    <i class="fa fa-download mr-2"></i> 下载图片
+                </a>
+                <button id="reset-btn" class="btn-outline">
+                    <i class="fa fa-refresh mr-2"></i> 重新开始
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-6 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-sm text-gray-400">© 2025 图片处理工具 | 所有操作均在本地完成，保护您的隐私</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // DOM 元素
+        const fileInput = document.getElementById('file-input');
+        const selectFileBtn = document.getElementById('select-file-btn');
+        const uploadError = document.getElementById('upload-error');
+        const previewSection = document.getElementById('preview-section');
+        const previewImage = document.getElementById('preview-image');
+        const originalDimensions = document.getElementById('original-dimensions');
+        const originalSize = document.getElementById('original-size');
+        const imageFormat = document.getElementById('image-format');
+        const processingSection = document.getElementById('processing-section');
+        const resultSection = document.getElementById('result-section');
+        const processedDimensions = document.getElementById('processed-dimensions');
+        const processedSize = document.getElementById('processed-size');
+        const compressionRate = document.getElementById('compression-rate');
+        const resultImage = document.getElementById('result-image');
+        const processBtn = document.getElementById('process-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const cropWidth = document.getElementById('crop-width');
+        const cropHeight = document.getElementById('crop-height');
+        const maintainAspect = document.getElementById('maintain-aspect');
+        const qualitySlider = document.getElementById('quality-slider');
+        const qualityValue = document.getElementById('quality-value');
+        const stepIndicators = document.querySelectorAll('.step-indicator');
+        const previewContainer = document.getElementById('preview-container');
+        const cropOverlay = document.getElementById('crop-overlay');
+        const cropBox = document.getElementById('crop-box');
+        const startCropBtn = document.getElementById('start-crop-btn');
+        const resetCropBtn = document.getElementById('reset-crop-btn');
+        
+        // 全局变量
+        let originalImage = null;
+        let originalFileSize = 0;
+        let aspectRatio = 1;
+        let fileType = 'auto';
+        let isCropping = false;
+        let isDragging = false;
+        let isResizing = false;
+        let startX, startY, currentX, currentY;
+        let cropX = 0, cropY = 0, cropWidthVal = 0, cropHeightVal = 0;
+        let containerWidth, containerHeight;
+        let imageWidth, imageHeight;
+        let imageOffsetX, imageOffsetY;
+        let resizeHandle = null;
+        
+        // 初始化
+        resetBtn.addEventListener('click', resetAll);
+        selectFileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+        processBtn.addEventListener('click', processImage);
+        qualitySlider.addEventListener('input', () => qualityValue.textContent = `${qualitySlider.value}%`);
+        startCropBtn.addEventListener('click', startCrop);
+        resetCropBtn.addEventListener('click', resetCrop);
+        
+        // 监听裁剪框尺寸变化并更新输入框
+        cropWidth.addEventListener('input', updateCropDimensions);
+        cropHeight.addEventListener('input', updateCropDimensions);
+        
+        // 处理文件选择
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // 验证文件类型
+            if (!file.type.startsWith('image/')) {
+                uploadError.classList.remove('hidden');
+                return;
+            }
+            
+            uploadError.classList.add('hidden');
+            
+            // 验证文件大小 (20MB)
+            if (file.size > 20 * 1024 * 1024) {
+                uploadError.querySelector('span').textContent = '文件大小不能超过20MB';
+                uploadError.classList.remove('hidden');
+                return;
+            }
+            
+            // 读取文件
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const imageData = event.target.result;
+                
+                // 创建图片对象获取尺寸
+                const img = new Image();
+                img.onload = function() {
+                    originalImage = img;
+                    previewImage.src = imageData;
+                    previewSection.classList.remove('hidden');
+                    processingSection.classList.remove('hidden');
+                    processBtn.classList.remove('hidden');
+                    
+                    // 更新步骤指示器
+                    updateStepIndicator(2);
+                    
+                    // 保存原始文件大小（字节）
+                    originalFileSize = file.size;
+                    
+                    // 显示图片信息
+                    originalDimensions.textContent = `${img.width} × ${img.height} 像素`;
+                    originalSize.textContent = formatFileSize(file.size);
+                    imageFormat.textContent = file.type.split('/')[1].toUpperCase();
+                    
+                    // 设置裁剪默认值
+                    cropWidth.value = img.width;
+                    cropHeight.value = img.height;
+                    aspectRatio = img.width / img.height;
+                    
+                    // 初始化裁剪相关尺寸
+                    setTimeout(() => {
+                        initializeCropDimensions();
+                    }, 100);
+                };
+                img.src = imageData;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // 初始化裁剪尺寸和事件
+        function initializeCropDimensions() {
+            // 获取容器和图片尺寸
+            containerWidth = previewContainer.clientWidth;
+            containerHeight = previewContainer.clientHeight;
+            imageWidth = previewImage.clientWidth;
+            imageHeight = previewImage.clientHeight;
+            
+            // 计算图片在容器中的偏移量
+            imageOffsetX = (containerWidth - imageWidth) / 2;
+            imageOffsetY = (containerHeight - imageHeight) / 2;
+            
+            // 设置默认裁剪框为图片的80%
+            const defaultWidth = imageWidth * 0.8;
+            const defaultHeight = imageHeight * 0.8;
+            const defaultX = (imageWidth - defaultWidth) / 2;
+            const defaultY = (imageHeight - defaultHeight) / 2;
+            
+            // 设置裁剪框尺寸
+            setCropBox(defaultX + imageOffsetX, defaultY + imageOffsetY, defaultWidth, defaultHeight);
+            
+            // 更新输入框值
+            updateCropInputFields();
+            
+            // 添加裁剪交互事件
+            setupCropEvents();
+        }
+        
+        // 设置裁剪框尺寸
+        function setCropBox(x, y, width, height) {
+            // 确保裁剪框在容器内
+            x = Math.max(imageOffsetX, Math.min(x, imageOffsetX + imageWidth - width));
+            y = Math.max(imageOffsetY, Math.min(y, imageOffsetY + imageHeight - height));
+            
+            // 确保裁剪框有最小尺寸
+            width = Math.max(20, Math.min(width, imageOffsetX + imageWidth - x));
+            height = Math.max(20, Math.min(height, imageOffsetY + imageHeight - y));
+            
+            // 设置裁剪框样式
+            cropBox.style.left = `${x}px`;
+            cropBox.style.top = `${y}px`;
+            cropBox.style.width = `${width}px`;
+            cropBox.style.height = `${height}px`;
+            
+            // 保存裁剪框位置和尺寸（相对于图片）
+            cropX = x - imageOffsetX;
+            cropY = y - imageOffsetY;
+            cropWidthVal = width;
+            cropHeightVal = height;
+            
+            // 更新输入框
+            updateCropInputFields();
+        }
+        
+        // 更新裁剪输入框
+        function updateCropInputFields() {
+            // 计算相对于原始图片的裁剪比例
+            const scaleX = originalImage.width / imageWidth;
+            const scaleY = originalImage.height / imageHeight;
+            
+            // 更新输入框值
+            cropWidth.value = Math.round(cropWidthVal * scaleX);
+            cropHeight.value = Math.round(cropHeightVal * scaleY);
+        }
+        
+        // 根据输入框更新裁剪尺寸
+        function updateCropDimensions() {
+            if (!isCropping) return;
+            
+            // 获取输入值
+            let newWidth = parseInt(cropWidth.value) || 0;
+            let newHeight = parseInt(cropHeight.value) || 0;
+            
+            // 确保有有效值
+            if (newWidth <= 0 || newHeight <= 0) return;
+            
+            // 计算相对于原始图片的裁剪比例
+            const scaleX = originalImage.width / imageWidth;
+            const scaleY = originalImage.height / imageHeight;
+            
+            // 转换为预览图上的尺寸
+            newWidth = Math.round(newWidth / scaleX);
+            newHeight = Math.round(newHeight / scaleY);
+            
+            // 如果保持比例，调整高度
+            if (maintainAspect.checked) {
+                newHeight = Math.round(newWidth / aspectRatio);
+                cropHeight.value = Math.round(newHeight * scaleY);
+            }
+            
+            // 调整裁剪框位置，保持居中
+            const centerX = cropX + cropWidthVal / 2;
+            const centerY = cropY + cropHeightVal / 2;
+            
+            const newX = Math.max(imageOffsetX, centerX - newWidth / 2);
+            const newY = Math.max(imageOffsetY, centerY - newHeight / 2);
+            
+            // 设置新的裁剪框尺寸
+            setCropBox(newX, newY, newWidth, newHeight);
+        }
+        
+        // 设置裁剪交互事件
+        function setupCropEvents() {
+            // 鼠标按下事件
+            previewContainer.addEventListener('mousedown', startCropSelection);
+            document.addEventListener('mousemove', moveCropSelection);
+            document.addEventListener('mouseup', endCropSelection);
+            
+            // 裁剪框拖动事件
+            cropBox.addEventListener('mousedown', startDrag);
+            
+            // 裁剪框调整大小事件
+            const handles = cropBox.querySelectorAll('.crop-handle');
+            handles.forEach(handle => {
+                handle.addEventListener('mousedown', function(e) {
+                    isResizing = true;
+                    resizeHandle = handle;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    e.stopPropagation();
+                });
+            });
+        }
+        
+        // 开始裁剪选择
+        function startCropSelection(e) {
+            if (!isCropping) return;
+            
+            // 确保点击在图片区域内
+            if (e.clientX < imageOffsetX || e.clientX > imageOffsetX + imageWidth ||
+                e.clientY < imageOffsetY || e.clientY > imageOffsetY + imageHeight) {
+                return;
+            }
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            // 显示裁剪框
+            cropBox.classList.remove('hidden');
+            cropOverlay.classList.remove('hidden');
+            
+            // 初始裁剪框位置和大小
+            setCropBox(startX, startY, 0, 0);
+        }
+        
+        // 移动裁剪选择
+        function moveCropSelection(e) {
+            if (!isDragging && !isResizing) return;
+            
+            currentX = e.clientX;
+            currentY = e.clientY;
+            
+            if (isDragging) {
+                // 计算新的裁剪框位置和大小
+                let x = Math.min(startX, currentX);
+                let y = Math.min(startY, currentY);
+                let width = Math.abs(currentX - startX);
+                let height = Math.abs(currentY - startY);
+                
+                // 如果保持比例，调整高度
+                if (maintainAspect.checked) {
+                    if (width / height > aspectRatio) {
+                        height = width / aspectRatio;
+                    } else {
+                        width = height * aspectRatio;
+                    }
+                }
+                
+                // 设置裁剪框
+                setCropBox(x, y, width, height);
+            }
+            
+            if (isResizing) {
+                // 获取当前裁剪框位置和大小
+                let x = parseInt(cropBox.style.left);
+                let y = parseInt(cropBox.style.top);
+                let width = parseInt(cropBox.style.width);
+                let height = parseInt(cropBox.style.height);
+                
+                // 根据调整点调整裁剪框
+                const deltaX = currentX - startX;
+                const deltaY = currentY - startY;
+                
+                if (resizeHandle.classList.contains('crop-handle-se')) {
+                    // 右下角调整
+                    width += deltaX;
+                    height += deltaY;
+                    
+                    // 如果保持比例
+                    if (maintainAspect.checked) {
+                        if (width / height > aspectRatio) {
+                            height = width / aspectRatio;
+                        } else {
+                            width = height * aspectRatio;
+                        }
+                    }
+                } else if (resizeHandle.classList.contains('crop-handle-ne')) {
+                    // 右上角调整
+                    width += deltaX;
+                    y += deltaY;
+                    height -= deltaY;
+                    
+                    // 如果保持比例
+                    if (maintainAspect.checked) {
+                        if (width / height > aspectRatio) {
+                            height = width / aspectRatio;
+                            y = parseInt(cropBox.style.top) + (parseInt(cropBox.style.height) - height);
+                        } else {
+                            width = height * aspectRatio;
+                        }
+                    }
+                } else if (resizeHandle.classList.contains('crop-handle-sw')) {
+                    // 左下角调整
+                    x += deltaX;
+                    width -= deltaX;
+                    height += deltaY;
+                    
+                    // 如果保持比例
+                    if (maintainAspect.checked) {
+                        if (width / height > aspectRatio) {
+                            height = width / aspectRatio;
+                        } else {
+                            width = height * aspectRatio;
+                            x = parseInt(cropBox.style.left) + (parseInt(cropBox.style.width) - width);
+                        }
+                    }
+                } else if (resizeHandle.classList.contains('crop-handle-nw')) {
+                    // 左上角调整
+                    x += deltaX;
+                    y += deltaY;
+                    width -= deltaX;
+                    height -= deltaY;
+                    
+                    // 如果保持比例
+                    if (maintainAspect.checked) {
+                        if (width / height > aspectRatio) {
+                            height = width / aspectRatio;
+                            y = parseInt(cropBox.style.top) + (parseInt(cropBox.style.height) - height);
+                        } else {
+                            width = height * aspectRatio;
+                            x = parseInt(cropBox.style.left) + (parseInt(cropBox.style.width) - width);
+                        }
+                    }
+                }
+                
+                // 设置新的裁剪框
+                setCropBox(x, y, width, height);
+                
+                // 更新起始点
+                startX = currentX;
+                startY = currentY;
+            }
+        }
+        
+        // 结束裁剪选择
+        function endCropSelection() {
+            isDragging = false;
+            isResizing = false;
+            resizeHandle = null;
+        }
+        
+        // 开始拖动裁剪框
+        function startDrag(e) {
+            if (!isCropping) return;
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            e.stopPropagation();
+        }
+        
+        // 移动裁剪框
+        function moveDrag(e) {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            // 获取当前裁剪框位置
+            let x = parseInt(cropBox.style.left);
+            let y = parseInt(cropBox.style.top);
+            
+            // 计算新位置
+            x += deltaX;
+            y += deltaY;
+            
+            // 确保裁剪框在图片范围内
+            x = Math.max(imageOffsetX, Math.min(x, imageOffsetX + imageWidth - cropWidthVal));
+            y = Math.max(imageOffsetY, Math.min(y, imageOffsetY + imageHeight - cropHeightVal));
+            
+            // 设置新位置
+            cropBox.style.left = `${x}px`;
+            cropBox.style.top = `${y}px`;
+            
+            // 保存裁剪框位置
+            cropX = x - imageOffsetX;
+            cropY = y - imageOffsetY;
+            
+            // 更新输入框
+            updateCropInputFields();
+            
+            // 更新起始点
+            startX = e.clientX;
+            startY = e.clientY;
+        }
+        
+        // 开始裁剪模式
+        function startCrop() {
+            isCropping = true;
+            cropBox.classList.remove('hidden');
+            cropOverlay.classList.remove('hidden');
+            startCropBtn.classList.add('hidden');
+            resetCropBtn.classList.remove('hidden');
+            
+            // 添加拖动事件监听
+            document.addEventListener('mousemove', moveDrag);
+        }
+        
+        // 重置裁剪框
+        function resetCrop() {
+            initializeCropDimensions();
+        }
+        
+        // 处理图片
+        function processImage() {
+            // 创建canvas进行处理
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 获取设置
+            let width = parseInt(cropWidth.value) || originalImage.width;
+            let height = parseInt(cropHeight.value) || originalImage.height;
+            const quality = parseInt(qualitySlider.value) / 100;
+            
+            // 获取输出格式
+            let format = 'image/jpeg';
+            const formatRadios = document.getElementsByName('output-format');
+            for (const radio of formatRadios) {
+                if (radio.checked) {
+                    format = radio.value;
+                    break;
+                }
+            }
+            
+            // 转换格式为MIME类型
+            if (format === 'auto') {
+                format = originalImage.src.includes('image/png') ? 'image/png' : 'image/jpeg';
+            } else if (format === 'jpg') {
+                format = 'image/jpeg';
+            } else if (format === 'png') {
+                format = 'image/png';
+            } else if (format === 'webp') {
+                format = 'image/webp';
+            }
+            
+            // 计算相对于原始图片的裁剪比例
+            const scaleX = originalImage.width / imageWidth;
+            const scaleY = originalImage.height / imageHeight;
+            
+            // 设置canvas尺寸
+            canvas.width = width;
+            canvas.height = height;
+            
+            // 计算裁剪区域
+            const cropXOriginal = cropX * scaleX;
+            const cropYOriginal = cropY * scaleY;
+            const cropWidthOriginal = cropWidthVal * scaleX;
+            const cropHeightOriginal = cropHeightVal * scaleY;
+            
+            // 绘制图片到canvas (裁剪并缩放)
+            ctx.drawImage(
+                originalImage, 
+                cropXOriginal, cropYOriginal, cropWidthOriginal, cropHeightOriginal,
+                0, 0, width, height
+            );
+            
+            // 生成处理后的图片
+            canvas.toBlob(function(blob) {
+                // 创建URL
+                const resultUrl = URL.createObjectURL(blob);
+                
+                // 更新结果区域
+                resultImage.src = resultUrl;
+                resultSection.classList.remove('hidden');
+                downloadBtn.href = resultUrl;
+                
+                // 设置下载文件名
+                const fileName = `processed-image.${format.split('/')[1]}`;
+                downloadBtn.download = fileName;
+                
+                // 显示处理后图片信息
+                processedDimensions.textContent = `${width} × ${height} 像素`;
+                processedSize.textContent = formatFileSize(blob.size);
+                
+                // 计算压缩率
+                const compression = 100 - Math.round((blob.size / originalFileSize) * 100);
+                compressionRate.textContent = `${compression}%`;
+                
+                // 更新步骤指示器
+                updateStepIndicator(3);
+                
+                // 显示下载按钮
+                downloadBtn.classList.remove('hidden');
+                
+                // 释放URL对象
+                setTimeout(() => {
+                    URL.revokeObjectURL(resultUrl);
+                }, 30000);
+            }, format, quality);
+        }
+        
+        // 更新步骤指示器
+        function updateStepIndicator(step) {
+            stepIndicators.forEach((indicator, index) => {
+                if (index < step) {
+                    indicator.querySelector('div').classList.add('bg-primary', 'text-white');
+                    indicator.querySelector('div').classList.remove('bg-gray-200', 'text-gray-500');
+                } else {
+                    indicator.querySelector('div').classList.remove('bg-primary', 'text-white');
+                    indicator.querySelector('div').classList.add('bg-gray-200', 'text-gray-500');
+                }
+            });
+        }
+        
+        // 重置所有
+        function resetAll() {
+            // 隐藏所有部分
+            previewSection.classList.add('hidden');
+            processingSection.classList.add('hidden');
+            resultSection.classList.add('hidden');
+            processBtn.classList.add('hidden');
+            downloadBtn.classList.add('hidden');
+            cropBox.classList.add('hidden');
+            cropOverlay.classList.add('hidden');
+            startCropBtn.classList.remove('hidden');
+            resetCropBtn.classList.add('hidden');
+            
+            // 重置输入
+            fileInput.value = '';
+            cropWidth.value = '';
+            cropHeight.value = '';
+            qualitySlider.value = 80;
+            qualityValue.textContent = '80%';
+            
+            // 重置步骤指示器
+            updateStepIndicator(1);
+            
+            // 重置全局变量
+            originalImage = null;
+            originalFileSize = 0;
+            aspectRatio = 1;
+            isCropping = false;
+            isDragging = false;
+            isResizing = false;
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>    
