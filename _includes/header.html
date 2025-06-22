@@ -3,7 +3,10 @@
   <div class="wrapper">
     {%- assign default_paths = site.pages | map: "path" -%}
     {%- assign page_paths = site.header_pages | default: default_paths -%}
-    <a class="site-title" rel="author" href="{{ "/" | relative_url }}">{{ site.title | escape }}</a>
+    <a class="site-title" rel="author" href="{{ "/" | relative_url }}">
+      <img src="/images/self.png" alt="@bonnielai" size="48" height="48" width="48" data-view-component="true" class="avatar circle mr-3">
+      {{ site.title | escape }}
+    </a>
 
     {%- if page_paths -%}
       <nav class="site-nav">

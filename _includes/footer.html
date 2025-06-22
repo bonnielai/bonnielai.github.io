@@ -13,15 +13,15 @@
               {{ site.title | escape }}
             {%- endif -%}
             </li>
+            {%- include social.html -%}
             {%- if site.email -%}
-            <li><a class="u-email" href="mailto:{{ site.email }}">{{ site.email }}</a></li>
+            <li><a class="u-email" href="mailto:{{ site.email }}">📧&nbsp;&nbsp;{{ site.email }}</a></li>
             {%- endif -%}
         </ul>
       </div>
 
-      <div class="footer-col footer-col-2">
-        {%- include social.html -%}
-      </div>
+      <!-- <div class="footer-col footer-col-2">
+      </div> -->
 
       <div class="footer-col footer-col-3 tools">
         <p>实用小工具：</p>
