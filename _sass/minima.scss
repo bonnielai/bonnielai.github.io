@@ -18,7 +18,9 @@ $grey-color:       #828282 !default;
 $grey-color-light: lighten($grey-color, 40%) !default;
 $grey-color-dark:  darken($grey-color, 25%) !default;
 
-$purple-color:     #8080ff !default;
+$purple-color:     #5050f5 !default;
+$purple-color-light: lighten($purple-color, 20%) !default;
+$purple-color-dark:  darken($purple-color, 25%) !default;
 
 $table-text-align: left !default;
 

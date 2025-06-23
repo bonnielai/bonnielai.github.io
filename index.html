@@ -18,7 +18,7 @@ pagination:
     <h2>Blogs</h2>
     <ul class="post-list">
       {% for post in paginator.posts %}
-        <li>
+        <li onclick="window.location.href='{{ post.url | relative_url }}'">
           <span>{{ post.date | date: "%b %-d, %Y" }}</span>
           <h3><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
           {{ post.excerpt }}
