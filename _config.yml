@@ -32,9 +32,14 @@ github_username:  bonnielai
 theme: minima
 plugins:
   - jekyll-feed
+  - jekyll-paginate
 
 page:
   title: Blogs
+
+# 分页配置
+paginate: 5           # 每页显示的文章数量
+paginate_path: "/page:num"  # 分页URL格式
 
 # Exclude from processing.
 # The following items will not be processed, by default.

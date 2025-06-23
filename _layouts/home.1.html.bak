@@ -1,0 +1,84 @@
+---
+layout: default
+title: Home
+pagination:
+  enabled: true
+---
+
+<div class="home">
+  {%- if page.title -%}
+    <h1 class="page-heading">{{ page.title }}</h1>
+  {%- endif -%}
+
+  {{ content }}
+  <p>{{paginator}}</p>
+  <p>{{paginator.posts}}</p>
+  <p>{{paginator.posts.size}}</p>
+
+  {%- if paginator.posts.size > 0 -%}
+    <h2 class="post-list-heading">{{ page.list_title | default: "Blogs" }}</h2>
+    <ul class="post-list">
+      {%- for post in paginator.posts -%}
+      <li>
+        {%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
+        <span class="post-meta">{{ post.date | date: date_format }}</span>
+        <h3>
+          <a class="post-link" href="{{ post.url | relative_url }}">
+            {{ post.title | escape }}
+          </a>
+        </h3>
+        {%- if site.show_excerpts -%}
+          {{ post.excerpt }}
+        {%- endif -%}
+      </li>
+      {%- endfor -%}
+    </ul>
+
+    <!-- 分页导航 -->
+    <div class="pagination">
+      {%- if paginator.previous_page -%}
+        <a href="{{ paginator.previous_page_path | relative_url }}" class="previous">
+          <i class="fa fa-arrow-left"></i> 上一页
+        </a>
+      {%- else -%}
+        <span class="previous disabled">
+          <i class="fa fa-arrow-left"></i> 上一页
+        </span>
+      {%- endif -%}
+      
+      <span class="page_number">
+        第 {{ paginator.page }} 页，共 {{ paginator.total_pages }} 页
+      </span>
+      
+      {%- if paginator.next_page -%}
+        <a href="{{ paginator.next_page_path | relative_url }}" class="next">
+          下一页 <i class="fa fa-arrow-right"></i>
+        </a>
+      {%- else -%}
+        <span class="next disabled">
+          下一页 <i class="fa fa-arrow-right"></i>
+        </span>
+      {%- endif -%}
+    </div>
+
+  {%- endif -%}
+
+  <!-- {%- if site.posts.size > 0 -%}
+    <h2 class="post-list-heading">Blogs" }}</h2>
+    <ul class="post-list">
+      {%- for post in site.posts -%}
+      <li>
+        <h3>
+          <a class="post-link" href="{{ post.url | relative_url }}">
+            {{ post.title | escape }}
+          </a>
+        </h3>
+        {%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
+        <span class="post-meta">{{ post.date | date: date_format }}</span>
+      </li>
+      {%- endfor -%}
+    </ul>
+    <p class="rss-subscribe">total: {{site.posts.size | 0}}</p>
+  {%- endif -%} -->
+
+</div>
