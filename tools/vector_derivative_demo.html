@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>向量内积偏导动态演示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#8B5CF6',
+                        neutral: '#64748B',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .vector-line {
+                stroke-width: 3;
+                stroke-linecap: round;
+            }
+            .vector-head {
+                fill: currentColor;
+            }
+            .grid-bg {
+                background-size: 20px 20px;
+                background-image: 
+                    linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <h1 class="text-3xl font-bold text-center mb-8 text-primary">向量内积偏导公式动态演示</h1>
+        
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- 左侧：公式和说明 -->
+                <div class="md:w-1/2">
+                    <h2 class="text-xl font-semibold mb-4 text-accent">公式：</h2>
+                    <div class="text-center py-4 bg-gray-50 rounded-lg mb-6">
+                        <p class="text-xl">∂⟨u,v⟩/∂x = uᵀ·∂v/∂x + vᵀ·∂u/∂x</p>
+                    </div>
+                    
+                    <h3 class="text-lg font-medium mb-2 text-neutral">动态解释：</h3>
+                    <ul class="list-disc pl-5 space-y-2 text-gray-700">
+                        <li>拖动下方滑块改变向量x，观察u、v的变化</li>
+                        <li>内积⟨u,v⟩的变化由两部分组成：</li>
+                        <li class="pl-4 text-primary">1. u固定时，v随x变化的贡献 (uᵀ·∂v/∂x)</li>
+                        <li class="pl-4 text-secondary">2. v固定时，u随x变化的贡献 (vᵀ·∂u/∂x)</li>
+                        <li>总变化率 = 两部分贡献之和</li>
+                    </ul>
+                    
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                        <p class="text-sm text-blue-800"><i class="fa fa-info-circle mr-2"></i>在示例中：u(x) = [x₁+x₂, 2x₁]，v(x) = [3x₂, x₁-x₂]</p>
+                    </div>
+                </div>
+                
+                <!-- 右侧：控制面板 -->
+                <div class="md:w-1/2">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">x₁: <span id="x1-value" class="font-semibold">1.0</span></label>
+                        <input type="range" id="x1-slider" min="-3" max="3" step="0.1" value="1" 
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">x₂: <span id="x2-value" class="font-semibold">1.0</span></label>
+                        <input type="range" id="x2-slider" min="-3" max="3" step="0.1" value="1" 
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <p class="text-sm text-gray-600">内积 ⟨u,v⟩</p>
+                            <p id="inner-product" class="text-xl font-bold text-gray-800">6.0</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <p class="text-sm text-gray-600">总偏导 ∂⟨u,v⟩/∂x</p>
+                            <p id="total-derivative" class="text-xl font-bold text-gray-800">(5.0, 7.0)</p>
+                        </div>
+                        <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                            <p class="text-sm text-blue-700">uᵀ·∂v/∂x</p>
+                            <p id="term1" class="text-xl font-bold text-primary">(2.0, 4.0)</p>
+                        </div>
+                        <div class="p-3 bg-green-50 rounded-lg border border-green-100">
+                            <p class="text-sm text-green-700">vᵀ·∂u/∂x</p>
+                            <p id="term2" class="text-xl font-bold text-secondary">(3.0, 3.0)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 向量可视化区域 -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-accent">向量变化可视化</h2>
+            <div class="flex justify-center">
+                <svg id="vector-plot" width="500" height="400" class="grid-bg">
+                    <!-- 坐标轴 -->
+                    <line x1="250" y1="0" x2="250" y2="400" stroke="#ccc" stroke-width="1" />
+                    <line x1="0" y1="200" x2="500" y2="200" stroke="#ccc" stroke-width="1" />
+                    
+                    <!-- 原点标记 -->
+                    <circle cx="250" cy="200" r="3" fill="#666" />
+                    
+                    <!-- 向量u -->
+                    <g id="vector-u" class="text-primary">
+                        <line id="u-line" class="vector-line" x1="250" y1="200" x2="350" y2="100" stroke="currentColor" />
+                        <polygon id="u-head" class="vector-head" points="0,0 -5,-10 5,-10" transform="translate(350,100) rotate(-45)" />
+                        <text x="350" y="90" fill="currentColor">u</text>
+                    </g>
+                    
+                    <!-- 向量v -->
+                    <g id="vector-v" class="text-secondary">
+                        <line id="v-line" class="vector-line" x1="250" y1="200" x2="400" y2="250" stroke="currentColor" />
+                        <polygon id="v-head" class="vector-head" points="0,0 -5,10 5,10" transform="translate(400,250) rotate(30)" />
+                        <text x="410" y="260" fill="currentColor">v</text>
+                    </g>
+                    
+                    <!-- 内积区域 -->
+                    <g id="inner-product-area" fill="rgba(139, 92, 246, 0.1)">
+                        <polygon id="ip-polygon" points="250,200 350,100 400,250" stroke="#8B5CF6" stroke-width="1" />
+                    </g>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const x1Slider = document.getElementById('x1-slider');
+        const x2Slider = document.getElementById('x2-slider');
+        const x1Value = document.getElementById('x1-value');
+        const x2Value = document.getElementById('x2-value');
+        const innerProductEl = document.getElementById('inner-product');
+        const totalDerivativeEl = document.getElementById('total-derivative');
+        const term1El = document.getElementById('term1');
+        const term2El = document.getElementById('term2');
+        
+        // 向量元素
+        const uLine = document.getElementById('u-line');
+        const uHead = document.getElementById('u-head');
+        const vLine = document.getElementById('v-line');
+        const vHead = document.getElementById('v-head');
+        const ipPolygon = document.getElementById('ip-polygon');
+        
+        // 原点坐标（SVG中心）
+        const originX = 250;
+        const originY = 200;
+        // 缩放因子
+        const scale = 50;
+        
+        // 更新函数
+        function updateVectors() {
+            // 获取x的值
+            const x1 = parseFloat(x1Slider.value);
+            const x2 = parseFloat(x2Slider.value);
+            
+            // 计算u和v向量
+            const u = [x1 + x2, 2 * x1];  // u(x) = [x1+x2, 2x1]
+            const v = [3 * x2, x1 - x2];  // v(x) = [3x2, x1-x2]
+            
+            // 计算内积
+            const innerProduct = u[0] * v[0] + u[1] * v[1];
+            
+            // 计算偏导数项
+            // ∂u/∂x = [[1, 1], [2, 0]]
+            // ∂v/∂x = [[0, 3], [1, -1]]
+            const term1 = [2 * x1, x1 + 3 * x2];  // uᵀ·∂v/∂x
+            const term2 = [2 * x1 + x2, 3 * x2];  // vᵀ·∂u/∂x
+            const totalDerivative = [term1[0] + term2[0], term1[1] + term2[1]];
+            
+            // 更新显示值
+            x1Value.textContent = x1.toFixed(1);
+            x2Value.textContent = x2.toFixed(1);
+            innerProductEl.textContent = innerProduct.toFixed(1);
+            totalDerivativeEl.textContent = `(${totalDerivative[0].toFixed(1)}, ${totalDerivative[1].toFixed(1)})`;
+            term1El.textContent = `(${term1[0].toFixed(1)}, ${term1[1].toFixed(1)})`;
+            term2El.textContent = `(${term2[0].toFixed(1)}, ${term2[1].toFixed(1)})`;
+            
+            // 更新向量u的位置
+            const uX = originX + u[0] * scale;
+            const uY = originY - u[1] * scale;  // Y轴向下为正，所以用减法
+            uLine.setAttribute('x2', uX);
+            uLine.setAttribute('y2', uY);
+            uHead.setAttribute('transform', `translate(${uX}, ${uY}) rotate(${(Math.atan2(-u[1], u[0]) * 180 / Math.PI)})`);
+            
+            // 更新向量v的位置
+            const vX = originX + v[0] * scale;
+            const vY = originY - v[1] * scale;
+            vLine.setAttribute('x2', vX);
+            vLine.setAttribute('y2', vY);
+            vHead.setAttribute('transform', `translate(${vX}, ${vY}) rotate(${(Math.atan2(-v[1], v[0]) * 180 / Math.PI)})`);
+            
+            // 更新内积区域
+            ipPolygon.setAttribute('points', `${originX},${originY} ${uX},${uY} ${vX},${vY}`);
+        }
+        
+        // 初始化
+        updateVectors();
+        
+        // 监听滑块变化
+        x1Slider.addEventListener('input', updateVectors);
+        x2Slider.addEventListener('input', updateVectors);
+    </script>
+</body>
+</html>
