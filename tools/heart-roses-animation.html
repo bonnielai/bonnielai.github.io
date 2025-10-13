@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星光爱心与玫瑰</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        star: {
+                            white: '#ffffff',
+                            pink: '#ffb6c1',
+                            lightpink: '#ffe4e1',
+                            hotpink: '#ff69b4',
+                            coral: '#ffdab9',
+                            lavender: '#fff0f5'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .star-glow {
+                filter: blur(0.5px);
+                animation: twinkle 2s infinite ease-in-out;
+            }
+            .heart-beat {
+                animation: heartbeat 1.5s infinite ease-in-out;
+            }
+            .float-away {
+                animation: floatAway 4s forwards ease-out;
+            }
+            .rose-float {
+                animation: roseFloat 6s forwards ease-in-out;
+            }
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            15% { transform: scale(1.1); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.1); }
+        }
+
+        @keyframes floatAway {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--drift-x), var(--drift-y)) scale(0.2); opacity: 0; }
+        }
+
+        @keyframes roseFloat {
+            0% { transform: translate(0, 0) rotate(0deg) scale(0.8); opacity: 1; }
+            20% { transform: translate(var(--drift-x-1), var(--drift-y-1)) rotate(var(--rotate-1)) scale(1); opacity: 1; }
+            40% { transform: translate(var(--drift-x-2), var(--drift-y-2)) rotate(var(--rotate-2)) scale(1); opacity: 0.9; }
+            60% { transform: translate(var(--drift-x-3), var(--drift-y-3)) rotate(var(--rotate-3)) scale(0.9); opacity: 0.7; }
+            80% { transform: translate(var(--drift-x-4), var(--drift-y-4)) rotate(var(--rotate-4)) scale(0.7); opacity: 0.4; }
+            100% { transform: translate(var(--drift-x-5), var(--drift-y-5)) rotate(var(--rotate-5)) scale(0.4); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-black min-h-screen flex items-center justify-center overflow-hidden">
+    <div class="relative w-full h-screen flex items-center justify-center">
+        <!-- 爱心容器 -->
+        <div id="heart-container" class="heart-beat relative w-[300px] h-[300px] md:w-[400px] md:h-[400px]"></div>
+        
+        <!-- 粒子容器 -->
+        <div id="particles-container" class="absolute inset-0 pointer-events-none"></div>
+        
+        <!-- 玫瑰花容器 -->
+        <div id="roses-container" class="absolute inset-0 pointer-events-none"></div>
+        
+        <!-- 提示信息 -->
+        <div class="absolute bottom-8 left-0 right-0 text-center text-white/80 text-sm md:text-base">
+            <p>点击爱心散落玫瑰 <i class="fa fa-hand-pointer-o ml-1"></i></p>
+        </div>
+    </div>
+
+    <script>
+        // 红色玫瑰花图片集合（真实玫瑰形状）
+        const ROSE_IMAGES = [
+            "../images/rose.png",  // 红色玫瑰花
+        ];
+        
+        // 颜色配置
+        const STAR_COLORS = [
+            'bg-star-white',
+            'bg-star-pink',
+            'bg-star-lightpink',
+            'bg-star-hotpink',
+            'bg-star-coral',
+            'bg-star-lavender'
+        ];
+        
+        // 星星数量
+        const INITIAL_STAR_COUNT = 300;
+        const EXTRA_STARS_ON_CLICK = 50;
+        
+        // 容器引用
+        const heartContainer = document.getElementById('heart-container');
+        const particlesContainer = document.getElementById('particles-container');
+        const rosesContainer = document.getElementById('roses-container');
+        
+        // 生成爱心曲线上的点 (使用参数方程)
+        function getHeartPoint() {
+            const t = Math.random() * Math.PI * 2;
+            // 爱心参数方程
+            let x = 16 * Math.pow(Math.sin(t), 3);
+            let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+            
+            // 缩放和定位到容器中心
+            const scale = 5 + Math.random() * 3;
+            const containerRect = heartContainer.getBoundingClientRect();
+            const centerX = containerRect.width / 2;
+            const centerY = containerRect.height / 2;
+            
+            // 转换为容器内坐标
+            x = centerX + x * scale;
+            y = centerY - y * scale; // 负号翻转Y轴
+            
+            return { x, y };
+        }
+        
+        // 创建星星
+        function createStar() {
+            const star = document.createElement('div');
+            const { x, y } = getHeartPoint();
+            
+            // 随机星星属性
+            const size = 1 + Math.random() * 2;
+            const color = STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)];
+            const delay = Math.random() * 2;
+            
+            // 设置星星样式
+            star.className = `absolute rounded-full star-glow ${color}`;
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+            star.style.left = `${x}px`;
+            star.style.top = `${y}px`;
+            star.style.animationDelay = `${delay}s`;
+            
+            heartContainer.appendChild(star);
+            return star;
+        }
+        
+        // 创建粒子
+        function createParticle() {
+            const particle = document.createElement('div');
+            const containerRect = heartContainer.getBoundingClientRect();
+            
+            // 在爱心范围内随机位置
+            const x = containerRect.left + containerRect.width / 2 + (Math.random() * 200 - 100);
+            const y = containerRect.top + containerRect.height / 2 + (Math.random() * 160 - 80);
+            
+            // 随机属性
+            const size = 1 + Math.random() * 1.5;
+            const color = STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)];
+            const driftX = (Math.random() - 0.5) * 200;
+            const driftY = (Math.random() - 0.5) * 200;
+            
+            // 设置粒子样式
+            particle.className = `absolute rounded-full float-away ${color}`;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.left = `${x}px`;
+            particle.style.top = `${y}px`;
+            particle.style.setProperty('--drift-x', `${driftX}px`);
+            particle.style.setProperty('--drift-y', `${driftY}px`);
+            
+            particlesContainer.appendChild(particle);
+            
+            // 动画结束后移除粒子
+            setTimeout(() => {
+                particle.remove();
+            }, 4000);
+        }
+        
+        // 创建玫瑰花
+        function createRose() {
+            const rose = document.createElement('img');
+            const containerRect = heartContainer.getBoundingClientRect();
+            const centerX = containerRect.left + containerRect.width / 2;
+            const centerY = containerRect.top + containerRect.height / 2;
+            
+            // 随机属性
+            const size = 40 + Math.random() * 30; // 玫瑰大小
+            const driftX = (Math.random() - 0.5) * 600; // 水平漂移距离
+            const driftY = (Math.random() - 0.7) * 400; // 垂直漂移距离，倾向于向下
+            const imageUrl = ROSE_IMAGES[Math.floor(Math.random() * ROSE_IMAGES.length)];
+            
+            // 为玫瑰飘落设置多个关键点，使轨迹更自然
+            const driftX1 = driftX * 0.2;
+            const driftX2 = driftX * 0.4;
+            const driftX3 = driftX * 0.6;
+            const driftX4 = driftX * 0.8;
+            const driftX5 = driftX;
+            
+            const driftY1 = driftY * 0.2;
+            const driftY2 = driftY * 0.4;
+            const driftY3 = driftY * 0.6;
+            const driftY4 = driftY * 0.8;
+            const driftY5 = driftY;
+            
+            // 旋转角度
+            const rotateTotal = (Math.random() - 0.5) * 360;
+            const rotate1 = rotateTotal * 0.2;
+            const rotate2 = rotateTotal * 0.4;
+            const rotate3 = rotateTotal * 0.6;
+            const rotate4 = rotateTotal * 0.8;
+            const rotate5 = rotateTotal;
+            
+            // 设置玫瑰样式和动画
+            rose.src = imageUrl;
+            rose.alt = "红色玫瑰花";
+            rose.className = "absolute rose-float object-contain";
+            rose.style.width = `${size}px`;
+            rose.style.height = 'auto'; // 保持图片比例
+            rose.style.left = `${centerX}px`;
+            rose.style.top = `${centerY}px`;
+            rose.style.transformOrigin = "center";
+            
+            // 设置动画关键帧变量
+            rose.style.setProperty('--drift-x-1', `${driftX1}px`);
+            rose.style.setProperty('--drift-x-2', `${driftX2}px`);
+            rose.style.setProperty('--drift-x-3', `${driftX3}px`);
+            rose.style.setProperty('--drift-x-4', `${driftX4}px`);
+            rose.style.setProperty('--drift-x-5', `${driftX5}px`);
+            
+            rose.style.setProperty('--drift-y-1', `${driftY1}px`);
+            rose.style.setProperty('--drift-y-2', `${driftY2}px`);
+            rose.style.setProperty('--drift-y-3', `${driftY3}px`);
+            rose.style.setProperty('--drift-y-4', `${driftY4}px`);
+            rose.style.setProperty('--drift-y-5', `${driftY5}px`);
+            
+            rose.style.setProperty('--rotate-1', `${rotate1}deg`);
+            rose.style.setProperty('--rotate-2', `${rotate2}deg`);
+            rose.style.setProperty('--rotate-3', `${rotate3}deg`);
+            rose.style.setProperty('--rotate-4', `${rotate4}deg`);
+            rose.style.setProperty('--rotate-5', `${rotate5}deg`);
+            
+            rosesContainer.appendChild(rose);
+            
+            // 动画结束后移除玫瑰
+            setTimeout(() => {
+                rose.remove();
+            }, 6000);
+        }
+        
+        // 初始化星星
+        function initStars() {
+            for (let i = 0; i < INITIAL_STAR_COUNT; i++) {
+                createStar();
+            }
+        }
+        
+        // 定时添加粒子
+        function startParticleSystem() {
+            setInterval(() => {
+                createParticle();
+            }, 100);
+        }
+        
+        // 事件监听
+        function setupEventListeners() {
+            // 点击爱心添加更多星星和玫瑰花
+            heartContainer.addEventListener('click', () => {
+                // 添加更多星星
+                for (let i = 0; i < EXTRA_STARS_ON_CLICK; i++) {
+                    createStar();
+                }
+                
+                // 添加额外粒子效果
+                for (let i = 0; i < 20; i++) {
+                    createParticle();
+                }
+                
+                // 添加玫瑰花
+                for (let i = 0; i < 15; i++) {
+                    // 错开时间创建，使玫瑰飘散更自然
+                    setTimeout(() => {
+                        createRose();
+                    }, i * 100);
+                }
+            });
+        }
+        
+        // 初始化
+        function init() {
+            initStars();
+            startParticleSystem();
+            setupEventListeners();
+        }
+        
+        // 启动动画
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
+    
