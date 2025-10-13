@@ -102,7 +102,7 @@
         ];
         
         // 星星数量
-        const INITIAL_STAR_COUNT = 300;
+        const INITIAL_STAR_COUNT = 500;
         const EXTRA_STARS_ON_CLICK = 50;
         
         // 容器引用
@@ -268,6 +268,20 @@
                 createParticle();
             }, 100);
         }
+
+        // 定时添加粒子
+        function startStarSystem() {
+            setInterval(() => {
+                createStar();
+            }, 100);
+        }
+        
+        // 定时添加玫瑰
+        function startRoseSystem() {
+            setInterval(() => {
+                createRose();
+            }, 1000);
+        }
         
         // 事件监听
         function setupEventListeners() {
@@ -297,6 +311,8 @@
         function init() {
             initStars();
             startParticleSystem();
+            startStarSystem();
+            startRoseSystem();
             setupEventListeners();
         }
         
