@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>二维码自动识别与无损替换工具</title>
+<style>
+  :root {color-scheme: dark; --bg:#0c1020;--panel:#151b2e;--panel2:#1e2840;--edge:#31405d;--txt:#edf2ff;--muted:#9eaecb;--accent:#b8a5ff;--hot:#f9a8d4;--green:#86e1b1;}
+  * {box-sizing:border-box} body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--txt)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 26px;border-bottom:1px solid var(--edge);background:linear-gradient(100deg,#222440,#131a2c);}
+  header h1{margin:0;font-size:20px;letter-spacing:.4px;font-weight:750} header p{margin:5px 0 0;color:var(--muted);font-size:12px} .pill{font-size:12px;white-space:nowrap;border:1px solid #5d6b92;border-radius:999px;padding:8px 12px;color:#d2e3ff;background:#202b46}
+  main{display:grid;grid-template-columns:minmax(315px,350px) minmax(0,1fr);min-height:calc(100vh - 82px)} aside{padding:19px 18px;border-right:1px solid var(--edge);background:#111729;overflow:auto;max-height:calc(100vh - 82px)}
+  .group{background:var(--panel);border:1px solid var(--edge);border-radius:15px;padding:15px;margin-bottom:13px} .group h2{font-size:14px;margin:0 0 12px;color:#e6e5ff;display:flex;align-items:center;gap:8px} .num{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#473c75;font-size:12px;color:#fff}
+  .drop{display:block;border:1px dashed #697ca4;border-radius:10px;cursor:pointer;text-align:center;background:#1b2540;padding:12px 8px;transition:background .15s} .drop:hover{background:#2a3252} .drop b{font-size:13px;display:block} .drop small{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.4} input[type=file]{display:none}
+  .fileStatus{font-size:11px;color:var(--green);margin-top:8px;line-height:1.4;word-break:break-all}
+  .inline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0;font-size:12px}.inline label{color:var(--muted)} .inline span{font-variant-numeric:tabular-nums;color:#f1eaff}
+  .inputs{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}.inputs label{font-size:11px;color:var(--muted)}.inputs input{display:block;margin-top:5px;min-width:0;width:100%;background:#101729;border:1px solid #42516d;color:#f0f3ff;border-radius:8px;padding:8px 9px;font-size:13px;font-variant-numeric:tabular-nums}
+  button{border:1px solid #586b99;background:#25324f;color:#eaf0ff;font-size:13px;font-weight:650;border-radius:10px;padding:11px 13px;cursor:pointer;transition:filter .15s,background .15s}button:hover:not(:disabled){filter:brightness(1.14)}button:disabled{cursor:not-allowed;opacity:.4}
+  .full{width:100%}.primary{background:linear-gradient(110deg,#7e6de3,#a16de9);border-color:#b2a8f6;color:white}.btnrow{display:flex;gap:8px}.btnrow button{flex:1}
+  select{background:#101729;color:#f0f3ff;border:1px solid #42516d;border-radius:8px;padding:8px;width:100%;font:inherit;font-size:12px}
+  input[type=range]{width:100%;accent-color:#ac99ff;cursor:pointer} .status{font-size:11px;color:var(--muted);line-height:1.65;margin-top:10px;min-height:32px} .status.good{color:var(--green)}.status.warn{color:#f9d18c}
+  .help{font-size:11px;line-height:1.75;color:#aebdd8;margin:9px 0 0} .help strong{color:#dde4ff}
+  .view{min-width:0;padding:17px 20px 26px;overflow:auto;max-height:calc(100vh - 82px);background:radial-gradient(ellipse at 55% 0,#27345677,#0c1020 70%)}
+  .viewhead{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px;flex-wrap:wrap}.viewhead .caption{font-size:12px;color:var(--muted)} .viewhead .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.viewhead button{padding:7px 10px;font-size:11px}
+  .viewer{position:relative;min-height:300px;width:100%;overflow:auto;padding:14px;display:flex;align-items:flex-start;justify-content:center;border-radius:16px;border:1px solid #2e3b59;background-color:#1a2235;background-image:linear-gradient(45deg,#26324a 25%,transparent 25%),linear-gradient(-45deg,#26324a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#26324a 75%),linear-gradient(-45deg,transparent 75%,#26324a 75%);background-size:22px 22px;background-position:0 0,0 11px,11px -11px,-11px 0}
+  #stage{position:relative;flex:0 0 auto;box-shadow:0 16px 50px #0009;touch-action:pan-x pan-y}#resultCanvas{display:block;max-width:none;height:auto} #roi{position:absolute;z-index:5;border:2px solid #ec5cbd;box-shadow:0 0 0 1px white,0 0 10px #ffb3ef88;cursor:move;touch-action:none;background:transparent}#roi::before{content:"二维码替换范围";position:absolute;bottom:calc(100% + 5px);left:-2px;white-space:nowrap;background:#312344;color:white;padding:3px 7px;border-radius:5px;font:10px/1.4 system-ui,sans-serif;box-shadow:0 3px 10px #0005}#roi .handle{position:absolute;right:-7px;bottom:-7px;width:16px;height:16px;border-radius:4px;background:#ffbee9;border:2px solid #3f2555;cursor:nwse-resize;touch-action:none}
+  .emptyState{width:100%;min-height:320px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;color:#bfc9e8;padding:30px;gap:9px;}
+  .emptyState .emptyIcon{font-size:42px;opacity:.78;line-height:1.3}
+  .emptyState strong{font-size:17px;color:#f1f3ff}
+  .emptyState small{font-size:12px;line-height:1.9;color:#94a7ca}
+  .emptyState .emptyHelp{padding:8px 18px;border:1px solid #485a7d;border-radius:10px;margin-top:6px;background:#1b2945;font-size:12px}
+  .legend{font-size:12px;color:#aabbd8;line-height:1.7;margin:10px 5px} .legend em{font-style:normal;color:#f5b8ec}
+  footer{margin-top:12px;color:#7284a5;text-align:right;font-size:11px}
+  @media(max-width:850px){main{grid-template-columns:1fr}aside{max-height:none;border-right:0;border-bottom:1px solid var(--edge)}.view{max-height:none;padding:14px} header{padding:15px}header h1{font-size:17px}.pill{display:none}}
+</style>
+</head>
+<body>
+<header><div><h1>✦ 二维码无损替换工作台</h1><p>只替换选中的二维码像素区域，海报文字、插画、比例、布局均保持原样</p></div><span class="pill">本地处理 · 无需上传服务器</span></header>
+<main>
+<aside>
+  <div class="group">
+    <h2><span class="num">1</span> 上传图片</h2>
+    <label class="drop" for="posterFile"><b>🖼 上传原始海报</b><small>支持 PNG / JPG / WEBP；请自行选择要编辑的原图</small></label><input id="posterFile" type="file" accept="image/*"><div class="fileStatus" id="posterName">尚未上传原图</div>
+    <label class="drop" for="qrFile" style="margin-top:12px"><b>▦ 上传新的可扫描二维码</b><small>支持普通二维码及带中心头像的二维码</small></label><input id="qrFile" type="file" accept="image/*"><div class="fileStatus" id="qrName">尚未上传新二维码</div>
+  </div>
+  <div class="group">
+    <h2><span class="num">2</span> 自动定位二维码</h2>
+    <button class="full" id="detectBtn" disabled>⌖ 重新识别原图二维码</button>
+    <div class="status" id="detectStatus">请先上传原图，上传后将自动尝试识别二维码位置。</div>
+    <p class="help">使用浏览器二维码识别 + <strong>定位角特征识别</strong>双重方案。即使旧二维码已无法扫码，也会尝试通过三个方形定位角找到它。</p>
+  </div>
+  <div class="group">
+    <h2><span class="num">3</span> 调整覆盖区域</h2>
+    <p class="help">可直接拖动右侧的<strong>粉色矩形框</strong>移动二维码，拖右下角改变尺寸；也可精确输入原图像素坐标。</p>
+    <div class="inputs">
+      <label>左上 X（px）<input type="number" min="0" step="1" id="boxX"></label>
+      <label>左上 Y（px）<input type="number" min="0" step="1" id="boxY"></label>
+      <label>宽度（px）<input type="number" min="16" step="1" id="boxW"></label>
+      <label>高度（px）<input type="number" min="16" step="1" id="boxH"></label>
+    </div>
+    <div class="inline"><label for="pad">二维码内边距</label><span id="padText">0 px</span></div>
+    <input id="pad" type="range" min="0" max="20" value="0" step="1">
+    <div class="inline"><label for="coverMode">二维码填入方式</label></div>
+    <select id="coverMode"><option value="contain">保持比例，居中完整显示（推荐）</option><option value="stretch">拉伸填满整个选区</option></select>
+    <div class="inline"><label for="quality">二维码缩放质量</label></div>
+    <select id="quality"><option value="sharp">清晰像素（优先保证可扫描，推荐）</option><option value="smooth">平滑缩放（视觉更柔和）</option></select>
+    <div class="inline" style="margin-top:13px"><label><input id="showBefore" type="checkbox"> 临时显示替换前原图</label></div>
+    <div class="btnrow"><button id="nudgeBtn" title="每次按方向键可移动1像素">提示：方向键微调</button><button id="resetBtn">↺ 恢复识别位置</button></div>
+  </div>
+  <div class="group">
+    <h2><span class="num">4</span> 合成并下载</h2>
+    <button class="full primary" id="exportBtn" disabled>↓ 下载无损 PNG 成品</button>
+    <p class="help">直接将新二维码覆盖在原图指定区域，<strong>不调用 AI 重画</strong>。导出的长宽与原始海报完全一致。非二维码区域不会被绘制修改。</p>
+    <div class="status" id="exportStatus"></div>
+  </div>
+</aside>
+<section class="view">
+  <div class="viewhead"><span class="caption" id="imageDimensions">原图 · 尚未上传</span><div class="right"><button id="zoomOut">－ 缩小</button><span id="zoomLabel" class="caption">适应窗口</span><button id="zoomIn">＋ 放大</button><button id="fitBtn">适应宽度</button></div></div>
+  <div class="viewer" id="viewer">
+    <div class="emptyState" id="emptyState"><div class="emptyIcon">▦</div><strong>开始替换二维码</strong><small>请在左侧依次上传原始图片和新的二维码。<br>图片只在你的浏览器中处理，不会上传服务器。</small><div class="emptyHelp">上传原图 → 自动定位 → 上传新二维码 → 调整覆盖区域 → 导出 PNG</div></div>
+    <div id="stage" style="display:none"><canvas id="resultCanvas"></canvas><div id="roi" tabindex="0" aria-label="二维码替换区域（方向键可微调）"><div class="handle" aria-label="拖动调整二维码区域大小"></div></div></div>
+  </div>
+  <p class="legend"><em>● 粉色框</em> 是唯一发生像素覆盖的区域，选区外的文字、插画和装饰不会改动。<br>如需要肉眼确认，可勾选「临时显示替换前原图」对比。导出前请使用微信扫一扫测试最终图。</p>
+  <footer>本地图片处理 · 纯前端 Canvas 编辑 · 无需联网</footer>
+</section>
+</main>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const ui = {stage:$('#stage'),viewer:$('#viewer'),canvas:$('#resultCanvas'),roi:$('#roi'),
+  posterName:$('#posterName'),qrName:$('#qrName'),detectStatus:$('#detectStatus'),exportStatus:$('#exportStatus')};
+const ctx=ui.canvas.getContext('2d',{willReadFrequently:true});
+let poster=null, qr=null, posterFilename='图片', box={x:0,y:0,w:100,h:100}, located=null, fit=1, zoom=1, currentScale=1, imageW=0,imageH=0;
+let locating=false, drag=null;
+const setStatus=(msg,kind='')=>{ui.detectStatus.textContent=msg;ui.detectStatus.className='status '+kind;};
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+function updateButtons(){$('#exportBtn').disabled=!(poster&&qr);$('#detectBtn').disabled=!poster||locating;}
+function loadImage(src){return new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error('图片读取失败'));i.src=src;});}
+async function fileToImage(file){const url=URL.createObjectURL(file);try{return await loadImage(url)}finally{setTimeout(()=>URL.revokeObjectURL(url),3000)}}
+function updateFields(){for(const [k,id] of [['x','#boxX'],['y','#boxY'],['w','#boxW'],['h','#boxH']])$(id).value=Math.round(box[k]);}
+function sanitizeBox(b){const x=clamp(Math.round(b.x),0,Math.max(0,imageW-16)),y=clamp(Math.round(b.y),0,Math.max(0,imageH-16));return{x,y,w:clamp(Math.round(b.w),16,imageW-x),h:clamp(Math.round(b.h),16,imageH-y)};}
+function setBox(b){box=sanitizeBox(b);updateFields();syncOverlay();render();}
+function drawQR(){if(!qr||!poster)return;const {x,y,w,h}=box;ctx.fillStyle='#fff';ctx.fillRect(x,y,w,h);
+  const p=Number($('#pad').value), ax=x+p,ay=y+p,aw=Math.max(1,w-2*p),ah=Math.max(1,h-2*p);
+  let dx=ax,dy=ay,dw=aw,dh=ah;
+  if($('#coverMode').value==='contain'){const ratio=Math.min(aw/qr.naturalWidth,ah/qr.naturalHeight);dw=qr.naturalWidth*ratio;dh=qr.naturalHeight*ratio;dx=ax+(aw-dw)/2;dy=ay+(ah-dh)/2;}
+  ctx.imageSmoothingEnabled=($('#quality').value==='smooth');ctx.imageSmoothingQuality='high';ctx.drawImage(qr,dx,dy,dw,dh);
+}
+function render(){if(!poster)return;ctx.clearRect(0,0,imageW,imageH);ctx.drawImage(poster,0,0);if(!$('#showBefore').checked)drawQR();}
+function syncOverlay(){if(!poster)return;ui.roi.style.left=(box.x*currentScale)+'px';ui.roi.style.top=(box.y*currentScale)+'px';ui.roi.style.width=(box.w*currentScale)+'px';ui.roi.style.height=(box.h*currentScale)+'px';}
+function updateScale(){if(!poster)return;const room=Math.max(200,ui.viewer.clientWidth-45);fit=Math.min(1,room/imageW);currentScale=fit*zoom;
+  const cw=imageW*currentScale,ch=imageH*currentScale;ui.stage.style.width=cw+'px';ui.stage.style.height=ch+'px';ui.canvas.style.width=cw+'px';ui.canvas.style.height=ch+'px';syncOverlay();$('#zoomLabel').textContent=Math.round(currentScale*100)+'%';}
+function setZoom(z){zoom=clamp(z,0.4,5);updateScale();}
+function matchRuns(arr,getLength,getValue){
+  const starts=[0],vals=[];let last=getValue(0);vals.push(last);
+  for(let k=1;k<getLength;k++){const v=getValue(k);if(v!==last){starts.push(k);vals.push(v);last=v;}}
+  starts.push(getLength);const found=[];
+  for(let i=2;i<starts.length-3;i++){
+    if(vals[i-2]!==1)continue;
+    const lengths=[starts[i-1]-starts[i-2],starts[i]-starts[i-1],starts[i+1]-starts[i],starts[i+2]-starts[i+1],starts[i+3]-starts[i+2]];
+    const unit=lengths.reduce((a,b)=>a+b,0)/7;if(unit<1.25||unit>35)continue;
+    const pattern=[1,1,3,1,1],errors=lengths.map((v,j)=>Math.abs(v/(pattern[j]*unit)-1));
+    if(Math.max(...errors)>0.55)continue;
+    const center=(starts[i]+starts[i+1]-1)/2, error=errors.reduce((a,b)=>a+b,0)/5;
+    found.push({center,unit,error});
+  }return found;
+}
+function locateByFinderPatterns(image){
+ const maxDim=2400,scale=Math.min(1,maxDim/Math.max(image.naturalWidth,image.naturalHeight));
+ const w=Math.round(image.naturalWidth*scale),h=Math.round(image.naturalHeight*scale);
+ const c=document.createElement('canvas');c.width=w;c.height=h;const cx=c.getContext('2d',{willReadFrequently:true});cx.drawImage(image,0,0,w,h);const rgba=cx.getImageData(0,0,w,h).data;
+ const dark=new Uint8Array(w*h);
+ for(let j=0,i=0;j<dark.length;j++,i+=4){const luminance=(rgba[i]*77+rgba[i+1]*150+rgba[i+2]*29)>>8;dark[j]=luminance<115?1:0;}
+ const horizontal=[];
+ for(let y=0;y<h;y+=2){const m=matchRuns(null,w,x=>dark[y*w+x]);for(const hit of m)horizontal.push({x:hit.center,y,u:hit.unit,e:hit.error});}
+ const verticalCache=new Map(),verified=[];
+ for(const {x,y,u,e} of horizontal){const ix=Math.round(x);if(!verticalCache.has(ix)){verticalCache.set(ix,matchRuns(null,h,yy=>dark[yy*w+ix]));}
+  let best=null,bestScore=Infinity;
+  for(const v of verticalCache.get(ix)){if(Math.abs(v.center-y)>u*2||v.unit/u<.6||v.unit/u>1.6)continue;
+    const s=Math.abs(v.center-y)+v.error*5;if(s<bestScore){bestScore=s;best=v;}}
+  if(best)verified.push({x,y:best.center,u:(u+best.unit)/2,e:(e+best.error)/2});
+ }
+ const clusters=[];
+ verified.sort((a,b)=>a.e-b.e);
+ for(const p of verified){let found=null;for(const c of clusters){if(Math.abs(c.x-p.x)<Math.max(5,2*p.u)&&Math.abs(c.y-p.y)<Math.max(5,2*p.u)){found=c;break;}}
+  if(found){found.points.push(p);found.x=found.points.reduce((s,k)=>s+k.x,0)/found.points.length;found.y=found.points.reduce((s,k)=>s+k.y,0)/found.points.length;}
+  else clusters.push({x:p.x,y:p.y,points:[p]});
+ }
+ const cs=clusters.filter(c=>c.points.length>=3).map(c=>({...c,u:c.points.reduce((s,p)=>s+p.u,0)/c.points.length}));
+ let best=null,bestScore=-1e12;
+ for(const tl of cs)for(const tr of cs)for(const bl of cs){if(tl===tr||tl===bl||tr===bl)continue;
+  const dx=tr.x-tl.x,dy=bl.y-tl.y;if(dx<tl.u*9||dy<tl.u*9)continue;
+  if(Math.abs(tr.y-tl.y)>Math.max(5,dx*.18)||Math.abs(bl.x-tl.x)>Math.max(5,dy*.18))continue;
+  if(dx/dy<.55||dx/dy>1.6)continue;
+  const us=[tl.u,tr.u,bl.u];if(Math.max(...us)/Math.min(...us)>1.8)continue;
+  const score=tl.points.length+tr.points.length+bl.points.length-3*(Math.abs(tr.y-tl.y)/dx+Math.abs(bl.x-tl.x)/dy);
+  if(score>bestScore){bestScore=score;best={tl,tr,bl};}
+ }
+ if(!best)return null;
+ const u=(best.tl.u+best.tr.u+best.bl.u)/3;const extra=2*u;
+ const x=(best.tl.x-3.5*u-extra)/scale,y=(best.tl.y-3.5*u-extra)/scale;
+ const r=(best.tr.x+3.5*u+extra)/scale,b=(best.bl.y+3.5*u+extra)/scale;
+ return{box:{x:Math.round(x),y:Math.round(y),w:Math.round(r-x),h:Math.round(b-y)},detail:`检测到三个二维码定位角（每边模块约 ${(u/scale).toFixed(1)}px）`,kind:'pattern'};
+}
+async function locateByBarcodeDetector(image){
+ if(typeof BarcodeDetector==='undefined')return null;
+ try{const supported=BarcodeDetector.getSupportedFormats?await BarcodeDetector.getSupportedFormats():['qr_code'];if(!supported.includes('qr_code'))return null;
+ const detector=new BarcodeDetector({formats:['qr_code']});let result=await detector.detect(image);
+ if(!result.length)return null;
+ result=result.filter(p=>p.format==='qr_code');if(!result.length)return null;
+ const found=result.map(p=>p.boundingBox).filter(Boolean).sort((a,b)=>b.width*b.height-a.width*a.height)[0];if(!found)return null;
+ const margin=Math.max(3,Math.round(Math.min(found.width,found.height)*.04));return{box:{x:Math.floor(found.x-margin),y:Math.floor(found.y-margin),w:Math.ceil(found.width+margin*2),h:Math.ceil(found.height+margin*2)},kind:'barcode',detail:'已使用浏览器原生 QR 检测器定位'};
+ }catch(e){return null;}
+}
+async function autoLocate(){if(!poster||locating)return;locating=true;$('#detectBtn').disabled=true;setStatus('扫描二维码定位角中…');
+ try{
+   // 优先以定位角识别；不能解码的旧码也可能成功定位。
+   let found=locateByFinderPatterns(poster);
+   if(!found)found=await locateByBarcodeDetector(poster);
+   if(found){located=sanitizeBox(found.box);setBox(located);setStatus('✓ '+found.detail+'。已框选区域，建议放大预览确认边界。','good');}
+   else{located=null;setStatus('未能自动定位：请在右侧拖动粉色框，或手动输入二维码区域的原图坐标。','warn');}
+ }catch(e){setStatus('识别遇到问题：'+e.message+'；可以手动调整选框。','warn');}
+ finally{locating=false;$('#detectBtn').disabled=false;}
+}
+async function loadPoster(img,label){poster=img;located=null;imageW=img.naturalWidth;imageH=img.naturalHeight;ui.canvas.width=imageW;ui.canvas.height=imageH;
+  $('#stage').style.display='block';$('#emptyState').style.display='none';$('#detectBtn').disabled=false;updateButtons();
+  ui.posterName.textContent='✓ '+label;$('#imageDimensions').textContent=`原图 ${imageW} × ${imageH} px · 导出保持原尺寸`;
+  box=sanitizeBox({x:Math.max(0,Math.round(imageW*.80)),y:Math.max(0,Math.round(imageH*.85)),w:Math.max(60,Math.round(imageW*.11)),h:Math.max(60,Math.round(imageW*.11))});
+  updateFields();zoom=1;updateScale();render();await autoLocate();
+}
+async function loadQR(img,label){qr=img;ui.qrName.textContent='✓ '+label+' · '+img.naturalWidth+'×'+img.naturalHeight+' px';updateButtons();render();}
+$('#posterFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{posterFilename=f.name.replace(/\.[^.]+$/,'')||'图片';await loadPoster(await fileToImage(f),f.name);}catch(err){alert('海报载入失败：'+err.message)}});
+$('#qrFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{await loadQR(await fileToImage(f),f.name);}catch(err){alert('二维码载入失败：'+err.message)}});
+$('#detectBtn').addEventListener('click',()=>autoLocate());$('#resetBtn').addEventListener('click',()=>{if(!poster)return;if(located)setBox(located);else autoLocate()});
+$('#pad').addEventListener('input',e=>{$('#padText').textContent=e.target.value+' px';render();});$('#coverMode').addEventListener('change',render);$('#quality').addEventListener('change',render);$('#showBefore').addEventListener('change',render);
+for(const k of ['x','y','w','h'])$('#box'+k.toUpperCase()).addEventListener('change',()=>{
+ const obj={};for(const f of ['x','y','w','h'])obj[f]=Number($('#box'+f.toUpperCase()).value);setBox(obj);
+});
+$('#zoomOut').addEventListener('click',()=>setZoom(zoom/1.25));$('#zoomIn').addEventListener('click',()=>setZoom(zoom*1.25));$('#fitBtn').addEventListener('click',()=>setZoom(1));
+$('#nudgeBtn').addEventListener('click',()=>{ui.roi.focus();setStatus('选框已获得焦点：使用方向键移动，按住 Shift 可每次移动 10 像素。','good');});
+ui.roi.addEventListener('keydown',e=>{const delta={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];if(!delta)return;e.preventDefault();const k=e.shiftKey?10:1;setBox({...box,x:box.x+delta[0]*k,y:box.y+delta[1]*k});});
+ui.roi.addEventListener('pointerdown',e=>{if(!poster)return;e.preventDefault();e.stopPropagation();drag={startX:e.clientX,startY:e.clientY,box:{...box},mode:e.target.classList.contains('handle')?'resize':'move'};ui.roi.setPointerCapture(e.pointerId);});
+ui.roi.addEventListener('pointermove',e=>{if(!drag)return;e.preventDefault();const dx=(e.clientX-drag.startX)/currentScale,dy=(e.clientY-drag.startY)/currentScale;let updated={...drag.box};
+ if(drag.mode==='move'){updated.x+=dx;updated.y+=dy;}else{updated.w+=dx;updated.h+=dy;}setBox(updated);});
+ui.roi.addEventListener('pointerup',()=>drag=null);ui.roi.addEventListener('pointercancel',()=>drag=null);
+$('#exportBtn').addEventListener('click',async()=>{if(!poster||!qr){alert('请先选择海报与二维码');return;}
+ $('#showBefore').checked=false;render();$('#exportBtn').disabled=true;ui.exportStatus.textContent='正在打包无损 PNG…';
+ try{const blob=await new Promise((resolve,reject)=>ui.canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG 编码失败')),'image/png'));
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=posterFilename+'_仅替换二维码.png';document.body.appendChild(a);a.click();a.remove();
+ ui.exportStatus.textContent=`✓ 已生成 ${imageW} × ${imageH} px 图片（${(blob.size/1024/1024).toFixed(2)} MB）`;setTimeout(()=>URL.revokeObjectURL(url),10000);
+ }catch(e){ui.exportStatus.textContent='导出失败：'+e.message;}finally{updateButtons();}
+});
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>updateScale()).observe(ui.viewer);
+</script>
+</body>
+</html>
